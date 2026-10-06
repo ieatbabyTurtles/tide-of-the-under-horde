@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#102016">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Under-Horde">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <title>Tide of the Under-Horde</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --page:#102016; --panel:rgba(10,24,15,.94); --panel-2:#172d1c; --ink:#f4f7eb;
+      --muted:#9dd0a8; --green:#4ade80; --green-dark:#123d25; --gold:#f2ca55;
+      --red:#e85b50; --line:#568363; --shadow:rgba(0,0,0,.62);
+    }
+    @media (prefers-color-scheme: light) {
+      :root { --page:#183421; --panel:rgba(18,43,25,.94); --panel-2:#21452a; --ink:#fffef4; --muted:#bde5c5; --line:#72a37d; }
+    }
+    * { box-sizing:border-box; margin:0; padding:0; user-select:none; -webkit-user-select:none; -webkit-tap-highlight-color:transparent; }
+    html,body { width:100%; height:100%; overflow:hidden; background:var(--page); }
+    body { color:var(--ink); font-family:"Trebuchet MS",Verdana,sans-serif; }
+    button { appearance:none; border:0; color:inherit; font:inherit; }
+    #canvas2d { width:100%; height:100%; display:block; touch-action:none; cursor:grab; }
+    #canvas2d.dragging { cursor:grabbing; }
+
+    #rotate-prompt {
+      position:fixed; inset:0; z-index:1000; display:none; flex-direction:column; align-items:center; justify-content:center;
+      gap:10px; padding:24px; background:#09150d; color:#b9f3c4; text-align:center; font-size:16px; font-weight:900;
+    }
+    #rotate-prompt .turn { width:68px; height:68px; display:grid; place-items:center; border:2px solid #5fac71; border-radius:14px; color:#e8f7b1; font-size:42px; }
+    #rotate-prompt small { max-width:30ch; color:#85b692; font-size:12px; line-height:1.4; }
+    @media (orientation:portrait) { #rotate-prompt { display:flex; } }
+
+    #menu-screen {
+      position:absolute; inset:0; z-index:200; display:flex; flex-direction:column; align-items:center; justify-content:center;
+      padding:18px; background:
+        radial-gradient(circle at 50% 42%,rgba(74,148,79,.22),transparent 36%),
+        linear-gradient(180deg,rgba(6,16,10,.89),rgba(9,24,14,.98));
+    }
+    #menu-screen::before,#menu-screen::after { content:""; position:absolute; top:0; bottom:0; width:29%; opacity:.34; pointer-events:none; }
+    #menu-screen::before { left:0; background:linear-gradient(90deg,#0d2415,transparent); }
+    #menu-screen::after { right:0; background:linear-gradient(-90deg,#30170f,transparent); }
+    .menu-crest { position:relative; width:78px; height:48px; margin-bottom:8px; }
+    .menu-crest::before { content:""; position:absolute; left:10px; top:11px; width:48px; height:28px; border:3px solid #cfad43; border-radius:50% 50% 46% 46%; box-shadow:0 0 20px rgba(242,202,85,.18); }
+    .menu-crest::after { content:""; position:absolute; left:18px; top:2px; width:11px; height:18px; border-left:5px solid #cfad43; border-right:5px solid #cfad43; transform:skew(-13deg); }
+    #menu-title { position:relative; color:var(--gold); font-size:clamp(23px,4.3vw,36px); font-weight:900; letter-spacing:.075em; text-align:center; text-shadow:0 4px 14px #000; }
+    #menu-subtitle { position:relative; margin:7px 0 22px; color:#a9ddb4; font-size:10px; font-weight:800; letter-spacing:.13em; text-align:center; }
+    .menu-btns { position:relative; width:min(250px,76vw); display:grid; gap:9px; }
+    .menu-btn {
+      min-height:42px; padding:9px 15px; border:1px solid #62986e; border-radius:6px; cursor:pointer;
+      background:linear-gradient(#214b2d,#102a19); color:#f3fae9; box-shadow:inset 0 1px rgba(255,255,255,.12),0 5px 14px rgba(0,0,0,.45);
+      font-size:12px; font-weight:900; letter-spacing:.055em;
+    }
+    .menu-btn.secondary { border-color:#7d6f46; background:linear-gradient(#3f3a20,#272513); color:#f5dfa0; }
+    .menu-btn.danger { border-color:#83453d; background:linear-gradient(#54231f,#301714); color:#ffd2c8; }
+    .menu-btn:active { transform:translateY(1px); }
+    #menu-save-hint { position:relative; max-width:420px; margin-top:11px; color:#91b99a; font-size:9px; font-weight:700; line-height:1.4; text-align:center; }
+
+    #save-toast { position:absolute; z-index:320; top:max(14px,env(safe-area-inset-top)); left:50%; padding:9px 16px; transform:translate(-50%,-12px); opacity:0; border:1px solid #d7ba52; border-radius:5px; background:#173521; color:#fff1ae; box-shadow:0 7px 20px rgba(0,0,0,.6); font-size:10px; font-weight:900; letter-spacing:.035em; pointer-events:none; transition:opacity .18s,transform .18s; }
+    #save-toast.show { opacity:1; transform:translate(-50%,0); }
+
+    #mission-modal,#settings-modal,#reset-modal,#result-modal {
+      position:absolute; inset:0; z-index:260; display:none; align-items:center; justify-content:center; padding:14px; background:rgba(3,9,5,.88);
+    }
+    .modal-box { width:min(540px,94vw); padding:18px; border:1px solid #c2a647; border-radius:8px; background:linear-gradient(155deg,#193522,#0e1d13); box-shadow:0 18px 50px #000; text-align:center; }
+    .modal-box h2 { color:var(--gold); font-size:16px; letter-spacing:.06em; }
+    .modal-box p { margin-top:5px; color:#a9d7b3; font-size:10px; line-height:1.45; }
+    .setting-row { display:flex; align-items:center; justify-content:space-between; gap:18px; margin-top:10px; padding:11px 13px; border:1px solid #45654d; border-radius:5px; background:#142c1b; color:#dfece0; font-size:10px; font-weight:900; letter-spacing:.05em; text-align:left; }
+    .toggle-btn { min-width:62px; min-height:31px; padding:5px 10px; border:1px solid #71bd7e; border-radius:4px; background:#21693a; color:#efffe8; font-size:9px; font-weight:900; cursor:pointer; }
+    .toggle-btn.off { border-color:#9d5148; background:#55221e; color:#ffd0c8; }
+    .mission-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin:15px 0; }
+    .stage-card { min-height:46px; padding:7px 3px; border:1px solid #35593d; border-radius:5px; background:#142c1b; color:#839c88; font-size:9px; font-weight:900; cursor:pointer; }
+    .stage-card.cleared { border-color:#60a870; background:#1c5931; color:#efffe8; }
+    .stage-card.current { border-color:#ddb94c; background:#68491a; color:#fff8d4; box-shadow:0 0 12px rgba(242,202,85,.23); }
+    .stage-card.locked { opacity:.38; cursor:not-allowed; }
+    .modal-actions { display:flex; justify-content:center; gap:9px; margin-top:14px; }
+    .modal-btn { min-width:102px; min-height:36px; padding:7px 12px; border:1px solid #65866e; border-radius:5px; background:#223a28; font-size:10px; font-weight:900; cursor:pointer; }
+    .modal-btn.confirm { border-color:#b04d43; background:#64241f; }
+
+    #top-hud { position:absolute; z-index:20; top:max(9px,env(safe-area-inset-top)); left:12px; right:12px; display:flex; justify-content:space-between; align-items:flex-start; pointer-events:none; }
+    .hud-left,#hud-btns { display:flex; gap:7px; pointer-events:auto; }
+    .hud-stat { min-width:74px; padding:5px 10px; display:flex; flex-direction:column; align-items:center; border:1px solid var(--line); border-radius:6px; background:var(--panel); box-shadow:0 4px 12px var(--shadow); }
+    .stat-label { color:var(--muted); font-size:7px; font-weight:900; letter-spacing:.1em; }
+    .stat-val { color:var(--green); font-size:14px; font-weight:900; line-height:1.15; }
+    .hud-btn { min-height:32px; padding:6px 10px; border:1px solid var(--line); border-radius:5px; background:var(--panel); color:#eef8e8; font-size:9px; font-weight:900; cursor:pointer; box-shadow:0 4px 12px var(--shadow); }
+    .hud-btn[aria-pressed="true"] { border-color:var(--gold); color:#ffe993; }
+
+    #deploy-deck { position:absolute; z-index:30; top:max(10px,env(safe-area-inset-top)); left:50%; transform:translateX(-50%); display:flex; gap:11px; }
+    .unit-card { position:relative; width:72px; height:80px; padding:7px 5px 5px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; border:2px solid #3ca95c; border-radius:8px; background:linear-gradient(155deg,rgba(34,70,43,.97),rgba(11,25,15,.97)); box-shadow:inset 0 1px rgba(255,255,255,.13),0 5px 14px rgba(0,0,0,.55); cursor:pointer; touch-action:manipulation; }
+    .unit-card:active:not(:disabled) { transform:translateY(1px); }
+    .unit-card:disabled,.unit-card.disabled,.unit-card.locked { opacity:.46; filter:grayscale(.52); cursor:not-allowed; }
+    .card-cost { position:absolute; top:-9px; padding:2px 7px; border:1px solid #8bea9d; border-radius:7px; background:#39a95a; color:#071b0d; font-size:8px; font-weight:900; }
+    .card-icon { font-size:27px; line-height:1; filter:drop-shadow(0 2px 1px #000); }
+    .card-name { margin-top:3px; color:#dfeae0; font-size:7px; font-weight:900; letter-spacing:.07em; }
+    .card-bonus { font-size: 7px; font-weight: 800; color: #fcd34d; letter-spacing: 0.3px; margin-top: 1px; text-align: center; }
+    .lock-layer { position:absolute; inset:0; display:none; align-items:center; justify-content:center; border-radius:6px; background:rgba(6,13,8,.8); color:#ffb8ad; font-size:8px; font-weight:900; line-height:1.35; text-align:center; }
+    .unit-card.locked .lock-layer { display:flex; }
+
+    #base-hud { position:absolute; z-index:20; bottom:max(11px,env(safe-area-inset-bottom)); left:14px; right:14px; display:flex; justify-content:space-between; pointer-events:none; font-size:9px; font-weight:900; letter-spacing:.04em; text-shadow:0 2px 4px #000; }
+    .base-block:last-child { text-align:right; }
+    .hp-track { width:140px; height:9px; margin-top:3px; overflow:hidden; border:1px solid #26312a; border-radius:2px; background:#090d0a; }
+    .hp-fill { height:100%; width:100%; transition:width .12s linear; }
+    #rat-base-fill { background:linear-gradient(90deg,#2f9d53,#86dc63); }
+    #porc-base-fill { background:linear-gradient(90deg,#f17061,#b92e29); }
+
+    #panic-btn { position:absolute; z-index:30; left:50%; bottom:max(14px,env(safe-area-inset-bottom)); transform:translateX(-50%); min-height:36px; padding:7px 18px; border:1px solid #9b4038; border-radius:18px; background:#4e1b19; color:#e7bcb6; font-size:9px; font-weight:900; letter-spacing:.05em; opacity:.38; pointer-events:none; box-shadow:0 5px 15px rgba(0,0,0,.5); }
+    #panic-btn.ready { opacity:1; pointer-events:auto; border-color:var(--gold); background:linear-gradient(#c43e33,#6e1d19); color:#fff5d2; animation:pulse 1s infinite alternate; }
+    @keyframes pulse { from{transform:translateX(-50%) scale(1)} to{transform:translateX(-50%) scale(1.055)} }
+    #horn-btn {
+      position: absolute; bottom: 64px; right: 16px; z-index: 30;
+      background: #1e3a8a; border: 2px solid #93c5fd; color: #dbeafe;
+      font-size: 11px; font-weight: 900; padding: 9px 14px; border-radius: 20px;
+      cursor: pointer; opacity: 0.45; filter: grayscale(0.7); box-shadow: 0 4px 14px rgba(0,0,0,0.7);
+    }
+    #horn-btn.ready { opacity: 1; filter: none; background: #1d4ed8; border-color: #facc15; animation: hornpulse 1.2s infinite alternate; }
+    @keyframes hornpulse { from { transform: scale(1); } to { transform: scale(1.07); } }
+    #tutorial-overlay {
+      position: absolute; bottom: 110px; left: 50%; transform: translateX(-50%);
+      background: rgba(10,20,10,0.95); border: 2px solid #facc15; border-radius: 12px;
+      padding: 14px 18px; z-index: 60; display: none; text-align: center;
+      max-width: 86%; box-shadow: 0 6px 20px rgba(0,0,0,0.7);
+    }
+    #tutorial-text { font-size: 13px; font-weight: 700; color: #fef3c7; line-height: 1.4; }
+    #banner { position:absolute; z-index:60; top:34%; left:50%; max-width:82vw; padding:11px 22px; transform:translate(-50%,-7px); opacity:0; border-block:1px solid var(--gold); background:rgba(7,18,10,.94); color:#ffe889; box-shadow:0 8px 28px #000; font-size:12px; font-weight:900; letter-spacing:.06em; text-align:center; pointer-events:none; transition:opacity .16s,transform .16s; }
+    #banner.show { opacity:1; transform:translate(-50%,0); }
+
+    @media (max-width:760px),(max-height:440px) {
+      #top-hud { top:6px; left:6px; right:6px; }
+      .hud-left,#hud-btns { gap:4px; }
+      .hud-stat { min-width:56px; padding:3px 5px; }
+      .stat-label { font-size:5px; } .stat-val { font-size:10px; }
+      .hud-btn { min-height:25px; padding:4px 6px; font-size:6px; }
+      #deploy-deck { top:6px; gap:7px; }
+      .unit-card { width:52px; height:59px; padding:3px; }
+      .card-cost { top:-5px; padding:1px 4px; font-size:6px; }
+      .card-icon { font-size:18px; }.card-name,.lock-layer{font-size:5px;}
+      #base-hud { bottom:7px; left:7px; right:7px; font-size:6px; }
+      .hp-track { width:94px; height:7px; }
+      #panic-btn { bottom:7px; min-height:28px; padding:5px 11px; font-size:6px; }
+      #menu-title { font-size:21px; }.menu-crest{display:none} #menu-subtitle{margin-bottom:12px}.menu-btn{min-height:34px;padding:6px 12px;font-size:9px}.menu-btns{gap:6px}#menu-save-hint{max-width:390px;margin-top:7px;font-size:7px}
+      .modal-box { padding:12px; }.mission-grid{margin:10px 0;gap:5px}.stage-card{min-height:35px;font-size:7px}
+    }
+    @media (prefers-reduced-motion:reduce) { * { animation:none!important; transition:none!important; } }
+  </style>
+</head>
+<body>
+  <div id="rotate-prompt" role="status"><span class="turn">↻</span><div>ROTATE PHONE SIDEWAYS</div><small>The Vanguard battlefield uses a wide tactical view.</small></div>
+
+  <section id="menu-screen" aria-label="Campaign menu">
+    <div class="menu-crest" aria-hidden="true"></div>
+    <h1 id="menu-title">TIDE OF THE UNDER-HORDE</h1>
+    <p id="menu-subtitle">PORCUPINE BARONY · TEN-STAGE VANGUARD CAMPAIGN</p>
+    <div class="menu-btns">
+      <button class="menu-btn" id="btn-menu-continue" type="button">START CAMPAIGN</button>
+      <button class="menu-btn secondary" id="btn-menu-select" type="button">MISSION SELECT</button>
+      <button class="menu-btn secondary" id="btn-menu-settings" type="button">SETTINGS</button>
+      <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
+    </div>
+    <p id="menu-save-hint">Your campaign lives in this link — re-add your home-screen shortcut from this page to keep your progress.</p>
+  </section>
+
+  <section id="mission-modal" role="dialog" aria-modal="true" aria-labelledby="mission-title">
+    <div class="modal-box">
+      <h2 id="mission-title">THE PORCUPINE BARONY</h2>
+      <p>Break each citadel in order. Warlord Thorn-Quill guards the Brute at Stage 10.</p>
+      <div class="mission-grid" id="stage-grid"></div>
+      <div class="modal-actions"><button class="modal-btn" id="btn-close-mission" type="button">RETURN</button></div>
+    </div>
+  </section>
+
+  <section id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="modal-box">
+      <h2 id="settings-title">AUDIO &amp; GAME SETTINGS</h2>
+      <p>Adjust the woodland score and battlefield effects independently.</p>
+      <div class="setting-row"><span>BACKGROUND MUSIC</span><button class="toggle-btn" id="toggle-music" type="button" aria-pressed="true">ON</button></div>
+      <div class="setting-row"><span>SOUND EFFECTS</span><button class="toggle-btn" id="toggle-sfx" type="button" aria-pressed="true">ON</button></div>
+      <div class="modal-actions"><button class="modal-btn" id="btn-close-settings" type="button">CLOSE</button></div>
+    </div>
+  </section>
+
+  <section id="reset-modal" role="dialog" aria-modal="true" aria-labelledby="reset-title">
+    <div class="modal-box">
+      <h2 id="reset-title">RESET THE CAMPAIGN?</h2>
+      <p>This clears the stage unlocks encoded in this link and returns to Stage 1.</p>
+      <div class="modal-actions">
+        <button class="modal-btn" id="btn-cancel-reset" type="button">CANCEL</button>
+        <button class="modal-btn confirm" id="btn-confirm-reset" type="button">RESET</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="result-modal" role="dialog" aria-modal="true" aria-labelledby="result-title">
+    <div class="modal-box">
+      <h2 id="result-title">VICTORY</h2>
+      <p id="result-copy"></p>
+      <div class="modal-actions"><button class="modal-btn" id="btn-result" type="button">CONTINUE</button></div>
+    </div>
+  </section>
+
+  <div id="top-hud">
+    <div class="hud-left">
+      <div class="hud-stat"><span class="stat-label">BIOMASS</span><span class="stat-val" id="bio-val">20/50</span></div>
+      <div class="hud-stat"><span class="stat-label">MISSION</span><span class="stat-val" id="mission-badge">1/10</span></div>
+    </div>
+    <div id="hud-btns">
+      <button class="hud-btn" id="btn-hud-settings" type="button" aria-label="Open audio settings">⚙</button>
+      <button class="hud-btn" id="btn-hud-menu" type="button">MENU</button>
+      <button class="hud-btn" id="btn-cam-pan" type="button" aria-pressed="true">CAM PAN</button>
+    </div>
+  </div>
+
+  <div id="deploy-deck" aria-label="Deployment cards">
+    <button class="unit-card" id="card-scurrier" type="button" aria-label="Deploy two scurriers for 10 biomass">
+      <span class="card-cost">10 BIO</span><span class="card-icon" aria-hidden="true">🐀</span><span class="card-name">SWARM ×2</span><div class="card-bonus">+15% vs massive</div>
+    </button>
+    <button class="unit-card locked" id="card-brute" type="button" aria-label="Deploy Brute for 30 biomass">
+      <span class="card-cost">30 BIO</span><span class="card-icon" aria-hidden="true">🛡</span><span class="card-name">BRUTE</span><div class="card-bonus">+15% vs armored</div><span class="lock-layer">DEFEAT<br>STAGE 10</span>
+    </button>
+    <div class="unit-card locked" id="card-archer">
+      <div class="card-cost">15 BIO</div>
+      <div class="card-icon">🏹</div>
+      <div class="card-name">ARCHER</div>
+      <div class="card-bonus">+15% light / -15% armored</div>
+    </div>
+  </div>
+
+  <div id="base-hud">
+    <div class="base-block"><div>RAT UNDER-WARREN</div><div class="hp-track"><div class="hp-fill" id="rat-base-fill"></div></div></div>
+    <div class="base-block"><div id="enemy-base-name">OUTSKIRT BRIARS</div><div class="hp-track"><div class="hp-fill" id="porc-base-fill"></div></div></div>
+  </div>
+
+  <button id="panic-btn" type="button">RESURGENCE NOVA</button>
+  <button id="horn-btn">📯 WAR HORN</button>
+  <div id="banner" role="status" aria-live="polite"></div>
+  <div id="save-toast" role="status" aria-live="polite">Progress saved to this link!</div>
+  <div id="tutorial-overlay">
+    <div id="tutorial-text"></div>
+    <div style="display:flex; gap:10px; justify-content:center; margin-top:10px;">
+      <button class="hud-btn" id="tutorial-next">NEXT ➤</button>
+      <button class="hud-btn" id="tutorial-skip" style="background:#374151; border-color:#6b7280;">SKIP</button>
+    </div>
+  </div>
+  <canvas id="canvas2d" aria-label="A scrolling woodland battlefield where rat units advance on a porcupine citadel"></canvas>
+
+  <script>
+  (function () {
+    'use strict';
+
+    var AudioEngine = {
+      ctx:null, bgmStarted:false, musicEnabled:true, sfxEnabled:true, bgmGainNode:null, sfxGainNode:null, timer:null,
+      init:function(){
+        var AC=window.AudioContext||window.webkitAudioContext;
+        if(!AC)return;
+        if(!this.ctx){
+          this.ctx=new AC();
+          this.bgmGainNode=this.ctx.createGain();
+          this.sfxGainNode=this.ctx.createGain();
+          this.bgmGainNode.gain.setValueAtTime(this.musicEnabled?.06:0,this.ctx.currentTime);
+          this.sfxGainNode.gain.setValueAtTime(this.sfxEnabled?1:0,this.ctx.currentTime);
+          this.bgmGainNode.connect(this.ctx.destination);
+          this.sfxGainNode.connect(this.ctx.destination);
+        }
+        if(this.ctx.state==='suspended')this.ctx.resume();
+        if (!this.bgmStarted && this.ctx) {
+          this.bgmStarted = true;
+          this.startMenuBGM();
+        }
+      },
+      setMusic(enabled) {
+        this.musicEnabled = enabled;
+        if (this.bgmGainNode && this.ctx) {
+          this.bgmGainNode.gain.setValueAtTime(enabled ? 0.28 : 0.0, this.ctx.currentTime);
+        }
+      },
+      setSfx:function(enabled){
+        this.sfxEnabled=enabled;
+        if(this.ctx&&this.sfxGainNode)this.sfxGainNode.gain.setTargetAtTime(enabled?1:0,this.ctx.currentTime,.015);
+      },
+      _ensureNoise() {
+        if (this._noiseBuf || !this.ctx) return;
+        const len = Math.floor(this.ctx.sampleRate * 1.0);
+        this._noiseBuf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+        const d = this._noiseBuf.getChannelData(0);
+        for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      },
+
+      _noiseBurst(o) {
+        if (!this.sfxEnabled || !this.ctx) return;
+        this._ensureNoise();
+        const now = this.ctx.currentTime + (o.at || 0);
+        const dur = o.dur || 0.2;
+        const src = this.ctx.createBufferSource();
+        src.buffer = this._noiseBuf;
+        src.loop = true;
+        const flt = this.ctx.createBiquadFilter();
+        flt.type = o.type || 'lowpass';
+        flt.frequency.setValueAtTime(o.freq || 800, now);
+        if (o.endFreq) flt.frequency.exponentialRampToValueAtTime(o.endFreq, now + dur);
+        const g = this.ctx.createGain();
+        g.gain.setValueAtTime(0.0001, now);
+        g.gain.exponentialRampToValueAtTime(o.gain || 0.3, now + 0.012);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+        src.connect(flt); flt.connect(g); g.connect(this.ctx.destination);
+        src.start(now); src.stop(now + dur + 0.05);
+      },
+
+      _tone(o) {
+        if (!this.sfxEnabled || !this.ctx) return;
+        const now = this.ctx.currentTime + (o.at || 0);
+        const dur = o.dur || 0.2;
+        const osc = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        osc.type = o.type || 'sine';
+        osc.frequency.setValueAtTime(o.freq || 440, now);
+        if (o.end) osc.frequency.exponentialRampToValueAtTime(o.end, now + dur);
+        g.gain.setValueAtTime(0.0001, now);
+        g.gain.exponentialRampToValueAtTime(o.gain || 0.25, now + (o.attack || 0.012));
+        g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+        osc.connect(g); g.connect(this.ctx.destination);
+        osc.start(now); osc.stop(now + dur + 0.05);
+      },
+
+      tone:function(from,to,duration,type,volume,bus,delay){
+        if(!this.ctx||this.ctx.state!=='running')return;
+        var targetBus=bus==='music'?this.bgmGainNode:this.sfxGainNode;
+        if(!targetBus||(bus==='music'?!this.musicEnabled:!this.sfxEnabled))return;
+        var now=this.ctx.currentTime+(delay||0),osc=this.ctx.createOscillator(),gain=this.ctx.createGain();
+        osc.type=type;osc.frequency.setValueAtTime(from,now);osc.frequency.exponentialRampToValueAtTime(Math.max(1,to),now+duration);
+        gain.gain.setValueAtTime(volume,now);gain.gain.exponentialRampToValueAtTime(.001,now+duration);
+        osc.connect(gain);gain.connect(targetBus);osc.start(now);osc.stop(now+duration);
+      },
+      stopBGM() {
+        if (this.menuTimer) { clearInterval(this.menuTimer); this.menuTimer = null; }
+        if (this.gameTimer) { clearInterval(this.gameTimer); this.gameTimer = null; }
+        if (this._droneNodes) { this._droneNodes.forEach(o => { try { o.stop(); } catch (e) {} }); this._droneNodes = []; }
+      },
+
+      _bgmKick(now) {
+        const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(160, now);
+        o.frequency.exponentialRampToValueAtTime(42, now + 0.11);
+        g.gain.setValueAtTime(0.9, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+        o.connect(g); g.connect(this.bgmGainNode);
+        o.start(now); o.stop(now + 0.26);
+      },
+
+      _bgmHat(now, gain) {
+        this._ensureNoise();
+        const src = this.ctx.createBufferSource();
+        src.buffer = this._noiseBuf; src.loop = true;
+        const f = this.ctx.createBiquadFilter();
+        f.type = 'highpass'; f.frequency.value = 7500;
+        const g = this.ctx.createGain();
+        g.gain.setValueAtTime(gain || 0.06, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        src.connect(f); f.connect(g); g.connect(this.bgmGainNode);
+        src.start(now); src.stop(now + 0.08);
+      },
+
+      _bgmClap(now) {
+        this._ensureNoise();
+        [0, 0.02].forEach(at => {
+          const t = now + at;
+          const src = this.ctx.createBufferSource();
+          src.buffer = this._noiseBuf; src.loop = true;
+          const f = this.ctx.createBiquadFilter();
+          f.type = 'bandpass'; f.frequency.value = 1800; f.Q.value = 1.2;
+          const g = this.ctx.createGain();
+          g.gain.setValueAtTime(0.22, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+          src.connect(f); f.connect(g); g.connect(this.bgmGainNode);
+          src.start(t); src.stop(t + 0.15);
+        });
+      },
+
+      _bgmBass(now, freq, dur) {
+        const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(freq, now);
+        g.gain.setValueAtTime(0.0001, now);
+        g.gain.exponentialRampToValueAtTime(0.5, now + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+        o.connect(g); g.connect(this.bgmGainNode);
+        o.start(now); o.stop(now + dur + 0.05);
+      },
+
+      _bgmPluck(now, freq) {
+        const o = this.ctx.createOscillator(), f = this.ctx.createBiquadFilter(), g = this.ctx.createGain();
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(freq, now);
+        f.type = 'lowpass';
+        f.frequency.setValueAtTime(3200, now);
+        f.frequency.exponentialRampToValueAtTime(500, now + 0.22);
+        g.gain.setValueAtTime(0.0001, now);
+        g.gain.exponentialRampToValueAtTime(0.16, now + 0.008);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.26);
+        o.connect(f); f.connect(g); g.connect(this.bgmGainNode);
+        o.start(now); o.stop(now + 0.3);
+      },
+
+      _bgmPad(now, freqs, dur) {
+        freqs.forEach(fr => {
+          [-4, 4].forEach(cents => {
+            const o = this.ctx.createOscillator(), g = this.ctx.createGain(), f = this.ctx.createBiquadFilter();
+            o.type = 'sawtooth';
+            o.frequency.value = fr;
+            o.detune.value = cents;
+            f.type = 'lowpass'; f.frequency.value = 900;
+            g.gain.setValueAtTime(0.0001, now);
+            g.gain.linearRampToValueAtTime(0.05, now + dur * 0.3);
+            g.gain.linearRampToValueAtTime(0.0001, now + dur);
+            o.connect(f); f.connect(g); g.connect(this.bgmGainNode);
+            o.start(now); o.stop(now + dur + 0.1);
+          });
+        });
+      },
+
+      _ensureReverb() {
+        if (this._reverb || !this.ctx) return;
+        const dur = 2.8, rate = this.ctx.sampleRate, len = Math.floor(rate * dur);
+        const buf = this.ctx.createBuffer(2, len, rate);
+        for (let ch = 0; ch < 2; ch++) {
+          const d = buf.getChannelData(ch);
+          for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6);
+        }
+        this._reverb = this.ctx.createConvolver();
+        this._reverb.buffer = buf;
+        this._reverbGain = this.ctx.createGain();
+        this._reverbGain.gain.value = 0.55;
+        this._reverb.connect(this._reverbGain);
+        this._reverbGain.connect(this.bgmGainNode);
+      },
+
+      startMenuBGM() {
+        this.stopBGM();
+        if (!this.ctx || !this.bgmGainNode) return;
+        this._droneNodes = [];
+        this.bgmGainNode.gain.setValueAtTime(this.musicEnabled ? 0.24 : 0.0, this.ctx.currentTime);
+        const bpm = 118, beat = 60 / bpm;
+        // A - F#m - D - E progression
+        const roots = [110.00, 92.50, 73.42, 82.41];
+        const chords = [
+          [220.00, 277.18, 329.63],
+          [184.00, 220.00, 277.18],
+          [146.83, 184.00, 220.00],
+          [164.81, 207.65, 246.94],
+        ];
+        const lead = [440.00, 523.25, 587.33, 659.26, 587.33, 523.25, 440.00, 392.00];
+        let step = 0;
+        this.menuTimer = setInterval(() => {
+          if (!this.ctx || this.ctx.state !== 'running' || !this.musicEnabled) return;
+          const now = this.ctx.currentTime;
+          const s16 = step % 16;
+          const bar = Math.floor(step / 16) % 4;
+          if (s16 === 0 || s16 === 8) this._bgmKick(now);
+          if (s16 === 4 || s16 === 12) this._bgmClap(now);
+          if (s16 % 2 === 0) this._bgmHat(now, 0.04);
+          if (s16 % 4 === 2) this._bgmBass(now, roots[bar], beat * 0.9);
+          if (s16 % 2 === 1) this._bgmPluck(now, lead[(s16 >> 1) % 8] * 0.5);
+          if (s16 === 0) this._bgmPad(now, chords[bar], beat * 3.6);
+          step++;
+        }, (beat / 4) * 1000);
+      },
+
+      startGameBGM() {
+        this.stopBGM();
+        if (!this.ctx || !this.bgmGainNode) return;
+        this.bgmGainNode.gain.setValueAtTime(this.musicEnabled ? 0.27 : 0.0, this.ctx.currentTime);
+        const bpm = 142, beat = 60 / bpm;
+        const bassLine = [73.42, 73.42, 87.31, 98.00, 73.42, 73.42, 110.00, 98.00, 73.42, 73.42, 87.31, 98.00, 123.47, 110.00, 98.00, 87.31];
+        const leadLine = [587.33, 659.26, 739.99, 880.00, 739.99, 659.26, 587.33, 523.25];
+        let step = 0;
+        this.gameTimer = setInterval(() => {
+          if (!this.ctx || this.ctx.state !== 'running' || !this.musicEnabled) return;
+          const now = this.ctx.currentTime;
+          const s16 = step % 16;
+          if (s16 % 4 === 0) this._bgmKick(now);
+          if (s16 === 4 || s16 === 12) this._bgmClap(now);
+          this._bgmHat(now, s16 % 2 === 0 ? 0.05 : 0.03);
+          this._bgmBass(now, bassLine[s16], beat * 0.8);
+          if (s16 % 2 === 1) this._bgmPluck(now, leadLine[(s16 >> 1) % 8] * 0.5);
+          if (s16 === 0 && step % 32 === 0) this._bgmPad(now, [146.83, 185.00, 220.00, 293.66], beat * 8);
+          step++;
+        }, (beat / 4) * 1000);
+      },
+      playRatSummon() {
+        // Airy summon shimmer: soft rising tone + breathy high noise
+        this._tone({ freq: 520, end: 880, type: 'sine', dur: 0.14, gain: 0.22 });
+        this._tone({ freq: 780, end: 1170, type: 'sine', dur: 0.12, gain: 0.14, at: 0.07 });
+        this._noiseBurst({ dur: 0.1, type: 'highpass', freq: 3200, gain: 0.07 });
+      },
+
+      playRatDeath() {
+        // Soft descending vocal sigh with breath
+        this._tone({ freq: 640, end: 170, type: 'triangle', dur: 0.24, gain: 0.2 });
+        this._noiseBurst({ dur: 0.16, type: 'bandpass', freq: 1400, gain: 0.08 });
+      },
+
+      playPorcupineDeath() {
+        // Weighty beast fall: deep drop + low rumble wash
+        this._tone({ freq: 150, end: 42, type: 'sine', dur: 0.38, gain: 0.42 });
+        this._noiseBurst({ dur: 0.32, type: 'lowpass', freq: 320, gain: 0.26 });
+      },
+
+      playEpicClash() {
+        if (!this.sfxEnabled || !this.ctx) return;
+        // Crunch: distorted mid noise burst
+        this._noiseBurst({ dur: 0.1, type: 'bandpass', freq: 2600, gain: 0.4 });
+        // Steel scrape: downward-sweeping inharmonic partials, very short
+        const base = 2600 + Math.random() * 900;
+        [1, 1.48, 2.7].forEach((mult, i) => {
+          this._tone({ freq: base * mult, end: base * mult * 0.55, type: 'sine', dur: 0.12, gain: 0.1 / (i + 1), attack: 0.003 });
+        });
+        // Weighty thud underneath
+        this._tone({ freq: 110, end: 40, type: 'sine', dur: 0.18, gain: 0.45 });
+        this._noiseBurst({ dur: 0.14, type: 'lowpass', freq: 500, gain: 0.3 });
+      },
+
+      playTurretShot() {
+        if (!this.sfxEnabled || !this.ctx) return;
+        this._noiseBurst({ dur: 0.05, type: 'highpass', freq: 2800, gain: 0.25 });
+        this._noiseBurst({ dur: 0.09, type: 'lowpass', freq: 400, gain: 0.3 });
+        this._tone({ freq: 150, end: 60, type: 'sine', dur: 0.08, gain: 0.2 });
+      },
+      playWarHorn() {
+        if (!this.sfxEnabled || !this.ctx) return;
+        [0, 0.35].forEach(at => {
+          this._tone({ freq: 98, end: 92, type: 'sawtooth', dur: 0.5, gain: 0.3, at: at, attack: 0.08 });
+          this._tone({ freq: 147, end: 139, type: 'sawtooth', dur: 0.5, gain: 0.18, at: at, attack: 0.08 });
+        });
+        this._noiseBurst({ dur: 0.7, type: 'lowpass', freq: 500, gain: 0.12 });
+      },
+      playBowShot() {
+        if (!this.sfxEnabled || !this.ctx) return;
+        this._noiseBurst({ dur: 0.04, type: 'bandpass', freq: 2400, gain: 0.12 });
+        this._noiseBurst({ dur: 0.06, type: 'lowpass', freq: 900, gain: 0.1, at: 0.03 });
+      },
+
+      playNova() {
+        // Cinematic surge: rising air + deep bloom
+        this._noiseBurst({ dur: 0.55, type: 'lowpass', freq: 420, endFreq: 2600, gain: 0.32 });
+        this._tone({ freq: 65, end: 290, type: 'sine', dur: 0.5, gain: 0.42 });
+        this._tone({ freq: 130, end: 580, type: 'triangle', dur: 0.4, gain: 0.14, at: 0.08 });
+      },
+      playWin:function(){var self=this;[261.63,329.63,392,523.25].forEach(function(f,i){self.tone(f,f,.35,'triangle',.2,'sfx',i*.1);});}
+    };
+
+    var gameState={highestCleared:0,unlockedBrute:false,unlockedArcher:false,tutorialSeen:false,currentStage:1};
+    function readStateFromUrl(){
+      try{
+        var p=new URLSearchParams(window.location.hash.replace('#','')),s=parseInt(p.get('s'),10),c=parseInt(p.get('c'),10);
+        gameState.highestCleared=Math.max(0,Math.min(10,Number.isFinite(s)?s:0));
+        gameState.unlockedBrute=p.get('b')==='1'||gameState.highestCleared>=10;
+        if (p.has('a')) gameState.unlockedArcher = p.get('a') === '1';
+        else gameState.unlockedArcher=gameState.highestCleared>=2;
+        if (p.has('t')) gameState.tutorialSeen = p.get('t') === '1';
+        gameState.currentStage=Math.max(1,Math.min(10,Number.isFinite(c)?c:1));
+      }catch(e){}
+    }
+    var TIDE_SAVE_KEY='tideUnderHordeSaveV1';
+    function syncStateToUrl(){
+      try{
+        var hash=`s=${gameState.highestCleared}&a=${gameState.unlockedArcher ? 1 : 0}&b=${gameState.unlockedBrute ? 1 : 0}&t=${gameState.tutorialSeen ? 1 : 0}&c=${gameState.currentStage}`;
+        history.replaceState(null,'',window.location.pathname+window.location.search+'#'+hash);
+        try{localStorage.setItem(TIDE_SAVE_KEY,hash);}catch(e){}
+      }catch(e){}
+    }
+    function restoreStateFromDevice(){
+      try{
+        if(window.location.hash && window.location.hash.length>1) return;
+        var saved=localStorage.getItem(TIDE_SAVE_KEY);
+        if(saved) history.replaceState(null,'',window.location.pathname+window.location.search+'#'+saved);
+      }catch(e){}
+    }
+    restoreStateFromDevice();
+    readStateFromUrl();
+
+    var canvas=document.getElementById('canvas2d'),ctx=canvas.getContext('2d'),width=0,height=0,dpr=1;
+    var MAP_WIDTH=2200,RIVER_X=1100,HIGHWAY_Y=260,ROAD_HALF_WIDTH=55,RAT_CASTLE_X=140,PORC_CASTLE_X=2060;
+    var camX=0,autoPan=true,biomass=20,maxBiomass=50,ratBaseHp=850,maxRatBaseHp=850,porcBaseHp=900,maxPorcBaseHp=900;
+    var panicAvailable=true,isGameOver=false,isGameRunning=false,currentStage=1;
+    var ratTurretCooldown=0,porcTurretCooldown=0,activeTurretShots=[],ambientArtilleryTimer=2.5,ambientArcProjectiles=[],allies=[],enemies=[],particles=[],floatingTexts=[],enemyWaveTimer=4;
+    let ratAimAngle = 0, porcAimAngle = Math.PI;
+    function angleLerp(a, b, t) {
+      let d = (b - a) % (Math.PI * 2);
+      if (d > Math.PI) d -= Math.PI * 2;
+      if (d < -Math.PI) d += Math.PI * 2;
+      return a + d * t;
+    }
+    let hornTimer = 0, hornCooldown = 0;
+    const HORN_COST = 15, HORN_CD = 25, HORN_DUR = 8;
+    let shockwaves = [], rangedShots = [];
+    var bannerTimer=0,resultAction=null;
+    var stageNames=['OUTSKIRT BRIARS','TIMBER POST','THORN CORRIDOR','SPIKED RUNWAY','BRAMBLE REDOUBT','THE QUILLERIES','IRON PALISADE','HIGH SHIELD BASTION',"SOVEREIGN'S GATE",'CITADEL OF THORN-QUILL'];
+
+    var menuScreen=document.getElementById('menu-screen'),missionModal=document.getElementById('mission-modal'),settingsModal=document.getElementById('settings-modal'),resetModal=document.getElementById('reset-modal'),resultModal=document.getElementById('result-modal');
+    var cardScurrier=document.getElementById('card-scurrier'),cardBrute=document.getElementById('card-brute'),cardArcher=document.getElementById('card-archer'),panicBtn=document.getElementById('panic-btn');
+    var toggleMusic=document.getElementById('toggle-music'),toggleSfx=document.getElementById('toggle-sfx');
+
+    function resize(){
+      dpr=Math.min(2,window.devicePixelRatio||1);width=window.innerWidth;height=window.innerHeight;
+      canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);canvas.style.width=width+'px';canvas.style.height=height+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+      camX=Math.max(0,Math.min(Math.max(0,MAP_WIDTH-width),camX));
+    }
+    window.addEventListener('resize',resize);resize();
+
+    function showBanner(text){var b=document.getElementById('banner');b.textContent=text;b.classList.add('show');clearTimeout(bannerTimer);bannerTimer=setTimeout(function(){b.classList.remove('show');},2100);}
+    var saveToastTimer=0;
+    function showSaveToast(){var toast=document.getElementById('save-toast');toast.classList.add('show');clearTimeout(saveToastTimer);saveToastTimer=setTimeout(function(){toast.classList.remove('show');},2100);}
+    const tutorialSteps = [
+      "👆 Tap SWARM (x2) to deploy rat pairs — they cost 10 biomass.",
+      "🏹 Your mounted crossbow defends the warren on its own. Push forward!",
+      "📯 Tap WAR HORN to empower your swarm: +50% speed and damage for 8s.",
+      "💀 Destroy the Porcupine Stronghold to win the stage!"
+    ];
+    let tutorialStep = -1;
+    function showTutorialStep(i) {
+      tutorialStep = i;
+      const ov = document.getElementById('tutorial-overlay');
+      if (i < 0 || i >= tutorialSteps.length) { ov.style.display = 'none'; tutorialStep = -1; return; }
+      document.getElementById('tutorial-text').innerText = tutorialSteps[i];
+      document.getElementById('tutorial-next').innerText = (i === tutorialSteps.length - 1) ? "FIGHT! ⚔" : "NEXT ➤";
+      ov.style.display = 'block';
+    }
+    document.getElementById('tutorial-next').addEventListener('click', () => {
+      if (tutorialStep >= tutorialSteps.length - 1) {
+        gameState.tutorialSeen = true; syncStateToUrl();
+        showTutorialStep(-1);
+      } else {
+        showTutorialStep(tutorialStep + 1);
+      }
+    });
+    document.getElementById('tutorial-skip').addEventListener('click', () => {
+      gameState.tutorialSeen = true; syncStateToUrl();
+      showTutorialStep(-1);
+    });
+    function updateMenuState(){document.getElementById('btn-menu-continue').textContent=gameState.currentStage>1?'CONTINUE — STAGE '+gameState.currentStage:'START CAMPAIGN';}
+    function populateMissionGrid(){
+      var grid=document.getElementById('stage-grid');grid.textContent='';var max=Math.min(10,gameState.highestCleared+1);
+      for(var s=1;s<=10;s++)(function(stage){
+        var btn=document.createElement('button');btn.type='button';btn.className='stage-card';btn.innerHTML='STAGE '+stage+'<br><span style="font-size:6px;font-weight:700">'+stageNames[stage-1]+'</span>';
+        if(stage<=gameState.highestCleared)btn.classList.add('cleared');else if(stage===max)btn.classList.add('current');else{btn.classList.add('locked');btn.disabled=true;}
+        if(stage<=max)btn.addEventListener('click',function(){missionModal.style.display='none';startGameplay(stage);});grid.appendChild(btn);
+      })(s);
+    }
+    function startGameplay(level){level=Math.max(1,Math.min(10,parseInt(level,10)||1));gameState.currentStage=level;syncStateToUrl();menuScreen.style.display='none';missionModal.style.display='none';settingsModal.style.display='none';resetModal.style.display='none';resultModal.style.display='none';setupStage(level);isGameRunning=true;AudioEngine.init();AudioEngine.startGameBGM();}
+    function setupStage(lvl){
+      currentStage=lvl;allies=[];enemies=[];particles=[];floatingTexts=[];activeTurretShots=[];ambientArcProjectiles=[];biomass=20;ratBaseHp=maxRatBaseHp;maxPorcBaseHp=800+lvl*150;porcBaseHp=maxPorcBaseHp;runAutoBalanceCheck(lvl);panicAvailable=true;isGameOver=false;camX=0;enemyWaveTimer=(lvl === 1 ? 8.0 : 5.0);ratTurretCooldown=.7;porcTurretCooldown=1.1;ambientArtilleryTimer=2;
+      hornTimer = 0; hornCooldown = 0; shockwaves = []; rangedShots = [];
+      ratAimAngle = 0; porcAimAngle = Math.PI;
+      document.getElementById('card-archer').classList.toggle('locked', !gameState.unlockedArcher);
+      document.getElementById('mission-badge').textContent=lvl+'/10';document.getElementById('enemy-base-name').textContent=stageNames[lvl-1];updateHUD();showBanner('STAGE '+lvl+' · '+stageNames[lvl-1]);
+      if (lvl === 1 && gameState.highestCleared === 0 && !gameState.tutorialSeen) showTutorialStep(0); else showTutorialStep(-1);
+    }
+    function updateHUD(){
+      document.getElementById('bio-val').textContent=Math.floor(biomass)+'/'+maxBiomass;
+      document.getElementById('rat-base-fill').style.width=Math.max(0,ratBaseHp/maxRatBaseHp*100)+'%';
+      document.getElementById('porc-base-fill').style.width=Math.max(0,porcBaseHp/maxPorcBaseHp*100)+'%';
+      cardScurrier.disabled=biomass<10||!isGameRunning||isGameOver;
+      cardBrute.classList.toggle('locked',!gameState.unlockedBrute);cardBrute.disabled=!gameState.unlockedBrute||biomass<30||!isGameRunning||isGameOver;
+      if (gameState.unlockedArcher) { document.getElementById('card-archer').classList.toggle('disabled', biomass < 15); }
+      const hornBtn = document.getElementById('horn-btn');
+      if (hornCooldown > 0) {
+        hornBtn.classList.remove('ready');
+        hornBtn.innerText = `📯 ${Math.ceil(hornCooldown)}s`;
+      } else {
+        hornBtn.innerText = '📯 WAR HORN';
+        hornBtn.classList.toggle('ready', isGameRunning && biomass >= HORN_COST);
+      }
+      panicBtn.classList.toggle('ready',isGameRunning&&!isGameOver&&panicAvailable&&ratBaseHp/maxRatBaseHp<=.35);
+    }
+
+    var settingsWasRunning=false;
+    function openSettings(){AudioEngine.init();settingsWasRunning=isGameRunning;isGameRunning=false;updateHUD();settingsModal.style.display='flex';}
+    function closeSettings(){settingsModal.style.display='none';isGameRunning=settingsWasRunning;settingsWasRunning=false;updateHUD();}
+    function setToggleState(button,enabled){button.textContent=enabled?'ON':'OFF';button.classList.toggle('off',!enabled);button.setAttribute('aria-pressed',String(enabled));}
+    document.getElementById('btn-menu-continue').addEventListener('click',function(){startGameplay(gameState.currentStage);});
+    document.getElementById('btn-menu-select').addEventListener('click',function(){AudioEngine.init();populateMissionGrid();missionModal.style.display='flex';});
+    document.getElementById('btn-close-mission').addEventListener('click',function(){missionModal.style.display='none';});
+    document.getElementById('btn-menu-settings').addEventListener('click',openSettings);
+    document.getElementById('btn-hud-settings').addEventListener('click',openSettings);
+    document.getElementById('btn-close-settings').addEventListener('click',closeSettings);
+    toggleMusic.addEventListener('click',function(){AudioEngine.init();AudioEngine.setMusic(!AudioEngine.musicEnabled);setToggleState(toggleMusic,AudioEngine.musicEnabled);syncStateToUrl();});
+    toggleSfx.addEventListener('click',function(){AudioEngine.init();AudioEngine.setSfx(!AudioEngine.sfxEnabled);setToggleState(toggleSfx,AudioEngine.sfxEnabled);syncStateToUrl();});
+    document.getElementById('btn-menu-new').addEventListener('click',function(){resetModal.style.display='flex';});
+    document.getElementById('btn-cancel-reset').addEventListener('click',function(){resetModal.style.display='none';});
+    document.getElementById('btn-confirm-reset').addEventListener('click',function(){gameState.highestCleared=0;gameState.unlockedBrute=false;gameState.unlockedArcher=false;gameState.currentStage=1;try{localStorage.removeItem(TIDE_SAVE_KEY);}catch(e){}syncStateToUrl();updateMenuState();resetModal.style.display='none';startGameplay(1);});
+    document.getElementById('btn-hud-menu').addEventListener('click',function(){isGameRunning=false;updateHUD();updateMenuState();menuScreen.style.display='flex';AudioEngine.startMenuBGM();});
+    document.getElementById('btn-result').addEventListener('click',function(){resultModal.style.display='none';if(resultAction){var action=resultAction;resultAction=null;action();}});
+    document.getElementById('btn-cam-pan').addEventListener('click',function(){autoPan=!autoPan;this.textContent=autoPan?'CAM AUTO':'CAM FREE';this.setAttribute('aria-pressed',String(autoPan));});
+
+    cardScurrier.addEventListener('pointerdown',function(e){e.stopPropagation();AudioEngine.init();if(biomass<10||!isGameRunning)return;biomass-=10;AudioEngine.playRatSummon();spawnRatUnit('scurrier');spawnRatUnit('scurrier');updateHUD();});
+    cardBrute.addEventListener('pointerdown',function(e){e.stopPropagation();AudioEngine.init();if(!gameState.unlockedBrute||biomass<30||!isGameRunning)return;biomass-=30;AudioEngine.playRatSummon();spawnRatUnit('brute');updateHUD();});
+    document.getElementById('card-archer').addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      AudioEngine.init();
+      if (!gameState.unlockedArcher || biomass < 15) return;
+      biomass -= 15;
+      AudioEngine.playRatSummon();
+      spawnRatUnit('archer');
+      updateHUD();
+    });
+    document.getElementById('horn-btn').addEventListener('click', () => {
+      AudioEngine.init();
+      if (!isGameRunning || hornCooldown > 0 || biomass < HORN_COST) return;
+      biomass -= HORN_COST;
+      hornTimer = HORN_DUR; hornCooldown = HORN_CD;
+      AudioEngine.playWarHorn();
+      shockwaves.push({ x: RAT_CASTLE_X, y: HIGHWAY_Y, r: 24, life: 0.7 });
+      showBanner("📯 WAR HORN! +50% speed & damage!");
+      updateHUD();
+    });
+    panicBtn.addEventListener('click',function(){if(!panicAvailable||ratBaseHp/maxRatBaseHp>.35)return;panicAvailable=false;AudioEngine.playNova();enemies.forEach(function(e){if(e.x<RIVER_X){e.hp-=260;spawnBlood(e.x,e.y,'#ef4444');floatingTexts.push({x:e.x,y:e.y-30,text:'NOVA −260',color:'#facc15',life:.8});}});for(var i=0;i<6;i++)spawnRatUnit('scurrier');showBanner('RESURGENCE NOVA DETONATED');updateHUD();});
+
+    var isDragging=false,startX=0,startCamX=0;
+    canvas.addEventListener('pointerdown',function(e){AudioEngine.init();isDragging=true;startX=e.clientX;startCamX=camX;autoPan=false;canvas.classList.add('dragging');document.getElementById('btn-cam-pan').textContent='CAM FREE';document.getElementById('btn-cam-pan').setAttribute('aria-pressed','false');canvas.setPointerCapture(e.pointerId);});
+    canvas.addEventListener('pointermove',function(e){if(!isDragging)return;camX=Math.max(0,Math.min(Math.max(0,MAP_WIDTH-width),startCamX-(e.clientX-startX)));});
+    function endDrag(){isDragging=false;canvas.classList.remove('dragging');}canvas.addEventListener('pointerup',endDrag);canvas.addEventListener('pointercancel',endDrag);
+
+    function spawnRatUnit(type){
+      var roadY=HIGHWAY_Y+(Math.random()*40-20);
+      if(type==='scurrier'){
+        allies.push({type:type,x:RAT_CASTLE_X+40,y:roadY,hp:65,maxHp:65,dmg:14,range:28,speed:70,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
+      } else if (type === 'archer') {
+        allies.push({
+          type: 'archer',
+          x: RAT_CASTLE_X + 40, y: roadY,
+          hp: 50, maxHp: 50, dmg: 12, range: 140, speed: 55,
+          attackCooldown: 0, walkCycle: Math.random() * 5, attackAnim: 0
+        });
+      } else {
+        allies.push({type:type,x:RAT_CASTLE_X+20,y:roadY,hp:260,maxHp:260,dmg:28,range:34,speed:38,reflect:.25,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
+      }
+    }
+    function spawnPorcupineEnemy(type){
+      var y=HIGHWAY_Y+(Math.random()*40-20),boss=currentStage===10,hpScale=1+(currentStage-1)*.14,dmgScale=1+(currentStage-1)*.12,e;
+      if(type==='gladiator')e={type:type,x:PORC_CASTLE_X-40,y:y,hp:85*hpScale,maxHp:85*hpScale,dmg:14*dmgScale,range:30,speed:50};
+      else if(type==='champion')e={type:type,x:PORC_CASTLE_X-40,y:y,hp:170*hpScale,maxHp:170*hpScale,dmg:22*dmgScale,range:36,speed:40};
+      else e={type:type,isBoss:boss,x:PORC_CASTLE_X-50,y:y,hp:(boss?1200:450)*hpScale,maxHp:(boss?1200:450)*hpScale,dmg:(boss?40:32)*dmgScale,range:46,speed:32};
+      e.attackCooldown=0;e.walkCycle=Math.random()*5;e.attackAnim=0;enemies.push(e);
+    }
+    function runAutoBalanceCheck(stageNum) {
+      let wins = 0;
+      const testRuns = 40;
+      const simDt = 0.2;
+
+      for (let r = 0; r < testRuns; r++) {
+        let simRatHp = 850;
+        let simEnemyHp = 800 + stageNum * 150;
+        let t = 0;
+        let bio = 20;
+        let pTimer = 0;
+        let eTimer = 4.0;
+        let pCount = 0;
+        let eCount = 0;
+
+        while (simRatHp > 0 && simEnemyHp > 0 && t < 120) {
+          t += simDt;
+          bio = Math.min(50, bio + simDt * 2.4);
+
+          // Player auto-spawns scurriers when affordable
+          if (bio >= 10) {
+            bio -= 10;
+            pCount += 2;
+          }
+
+          // Enemy auto-spawns
+          eTimer -= simDt;
+          if (eTimer <= 0) {
+            eTimer = Math.max(3.2, 7.0 - stageNum * 0.28);
+            eCount += 1;
+          }
+
+          // Direct simplified frontline clash math
+          if (pCount > 0 && eCount > 0) {
+            pCount -= 0.12 * simDt;
+            eCount -= 0.16 * simDt;
+          } else if (pCount > 0) {
+            simEnemyHp -= pCount * 14 * simDt;
+          } else if (eCount > 0) {
+            simRatHp -= eCount * 16 * simDt;
+          }
+        }
+        if (simEnemyHp <= 0) wins++;
+      }
+
+      const winRate = (wins / testRuns) * 100;
+      // Auto-tune dynamically to maintain a smooth 60-75% target win-rate
+      if (winRate < 50) {
+        maxPorcBaseHp *= 0.88;
+        porcBaseHp = maxPorcBaseHp;
+      } else if (winRate > 85) {
+        maxPorcBaseHp *= 1.12;
+        porcBaseHp = maxPorcBaseHp;
+      }
+    }
+
+    function spawnBlood(x,y,color){for(var i=0;i<6;i++)particles.push({x:x,y:y,vx:(Math.random()-.5)*110,vy:-Math.random()*80,color:color,size:Math.random()*3+2,life:.35});}
+
+    function showResult(title,copy,label,action){document.getElementById('result-title').textContent=title;document.getElementById('result-copy').textContent=copy;document.getElementById('btn-result').textContent=label;resultAction=action;resultModal.style.display='flex';}
+    function handleVictory(){
+      isGameOver=true;isGameRunning=false;AudioEngine.playWin();gameState.highestCleared=Math.max(gameState.highestCleared,currentStage);
+      if (currentStage === 2 && !gameState.unlockedArcher) {
+        gameState.unlockedArcher = true;
+      }
+      if(currentStage===10)gameState.unlockedBrute=true;
+      syncStateToUrl();updateMenuState();showSaveToast();
+      if(currentStage===10){showResult('BARONY BROKEN','Warlord Thorn-Quill is defeated. The Quill-Plated Brute is now unlocked in your deck.','RETURN TO CAMPAIGN',function(){menuScreen.style.display='flex';AudioEngine.startMenuBGM();});}
+      else{var next=currentStage+1;showResult('STAGE SECURED',stageNames[currentStage-1]+' has fallen. Stage '+next+' is now open.','ADVANCE',function(){startGameplay(next);});}
+      updateHUD();
+    }
+    function handleDefeat(){isGameOver=true;isGameRunning=false;showResult('WARREN SHATTERED','The Under-Warren fell beneath the quill assault. Regroup and defend it again.','RETRY',function(){startGameplay(currentStage);});updateHUD();}
+
+    function updateSimulation(dt){
+      if(isGameOver)return;
+      hornTimer = Math.max(0, hornTimer - dt); hornCooldown = Math.max(0, hornCooldown - dt);
+      biomass=Math.min(maxBiomass,biomass+dt*2.4);updateHUD();
+      enemyWaveTimer-=dt;if(enemyWaveTimer<=0){
+        enemyWaveTimer = Math.max(3.2, 8.2 - currentStage * 0.32);
+        const r = Math.random();
+        let pick = 'gladiator';
+        if (currentStage >= 5 && r > 0.82) pick = 'warlord';
+        else if (currentStage >= 3 && r > 0.62) pick = 'champion';
+        spawnPorcupineEnemy(pick);
+      }
+
+      // Active crossbow turrets: track targets, then fire traveling bolts and quills.
+      const porcDmg = 9 + currentStage * 3;
+      const porcRange = 170 + currentStage * 15;
+      {
+        let ta = null, td = 240;
+        enemies.forEach(e => { const d = e.x - RAT_CASTLE_X; if (d > 0 && d < td) { td = d; ta = e; } });
+        if (ta) ratAimAngle = angleLerp(ratAimAngle, Math.atan2((ta.y - 10) - (HIGHWAY_Y - 40), ta.x - (RAT_CASTLE_X + 10)), Math.min(1, dt * 8));
+      }
+      {
+        let ta = null, td = porcRange;
+        allies.forEach(a => { const d = PORC_CASTLE_X - a.x; if (d > 0 && d < td) { td = d; ta = a; } });
+        if (ta) porcAimAngle = angleLerp(porcAimAngle, Math.atan2((ta.y - 10) - (HIGHWAY_Y - 40), ta.x - (PORC_CASTLE_X - 14)), Math.min(1, dt * 8));
+      }
+
+      ratTurretCooldown -= dt;
+      if (ratTurretCooldown <= 0) {
+        let closestEnemy = null, closestDist = 240;
+        enemies.forEach(e => { const d = e.x - RAT_CASTLE_X; if (d > 0 && d < closestDist) { closestDist = d; closestEnemy = e; } });
+        if (closestEnemy) {
+          ratTurretCooldown = 1.6;
+          AudioEngine.playTurretShot();
+          const mx = (RAT_CASTLE_X + 10) + Math.cos(ratAimAngle) * 42;
+          const my = (HIGHWAY_Y - 40) + Math.sin(ratAimAngle) * 42;
+          activeTurretShots.push({ x: mx, y: my, tx: closestEnemy.x, ty: closestEnemy.y - 10, target: closestEnemy, speed: 750, color: '#cbd5e1', isQuill: false, dmg: 28 });
+        }
+      }
+      porcTurretCooldown -= dt;
+      if (porcTurretCooldown <= 0) {
+        const attackers = allies.filter(a => (PORC_CASTLE_X - a.x) > 0 && (PORC_CASTLE_X - a.x) < porcRange);
+        if (attackers.length > 0) {
+          porcTurretCooldown = 1.8;
+          AudioEngine.playTurretShot();
+          attackers.slice(0, 3).forEach(target => {
+            const mx = (PORC_CASTLE_X - 14) + Math.cos(porcAimAngle) * 46;
+            const my = (HIGHWAY_Y - 40) + Math.sin(porcAimAngle) * 46;
+            activeTurretShots.push({ x: mx, y: my, tx: target.x, ty: target.y - 10, target: target, speed: 750, color: '#fde047', isQuill: true, dmg: porcDmg });
+          });
+        }
+      }
+      for (let i = activeTurretShots.length - 1; i >= 0; i--) {
+        const s = activeTurretShots[i];
+        if (s.target && s.target.hp > 0) { s.tx = s.target.x; s.ty = s.target.y - 10; }
+        const dx = s.tx - s.x, dy = s.ty - s.y;
+        const dist = Math.hypot(dx, dy) || 0.001;
+        const stepLen = s.speed * dt;
+        if (dist <= Math.max(10, stepLen)) {
+          if (s.target && s.target.hp > 0) {
+            s.target.hp -= s.dmg;
+            const hitAlly = allies.includes(s.target);
+            spawnBlood(s.tx, s.ty, hitAlly ? '#dc2626' : '#fde047');
+            floatingTexts.push({ x: s.tx, y: s.ty - 20, text: `-${Math.round(s.dmg)}`, color: hitAlly ? '#f87171' : '#86efac', life: 0.6 });
+          }
+          activeTurretShots.splice(i, 1);
+        } else {
+          s.x += (dx / dist) * stepLen;
+          s.y += (dy / dist) * stepLen;
+        }
+      }
+      for (let i = rangedShots.length - 1; i >= 0; i--) { rangedShots[i].life -= dt; if (rangedShots[i].life <= 0) rangedShots.splice(i, 1); }
+      for (let i = shockwaves.length - 1; i >= 0; i--) {
+        const s = shockwaves[i];
+        s.r += 320 * dt; s.life -= dt;
+        if (s.life <= 0) shockwaves.splice(i, 1);
+      }
+
+      ambientArtilleryTimer-=dt;
+      if(ambientArtilleryTimer<=0){
+        ambientArtilleryTimer=Math.random()*2.5+3;
+        var fromRatSide=Math.random()<.5,startArtilleryX=fromRatSide?Math.random()*500:MAP_WIDTH-Math.random()*500;
+        ambientArcProjectiles.push({startX:startArtilleryX,targetX:fromRatSide?startArtilleryX+Math.random()*600+400:startArtilleryX-(Math.random()*600+400),progress:0,speed:Math.random()*.4+.45,peakY:Math.random()*40+20,isFiery:Math.random()<.5});
+      }
+      for(var ap=ambientArcProjectiles.length-1;ap>=0;ap--){ambientArcProjectiles[ap].progress+=dt*ambientArcProjectiles[ap].speed;if(ambientArcProjectiles[ap].progress>=1)ambientArcProjectiles.splice(ap,1);}
+
+      if(autoPan){var clash=RIVER_X;if(allies.length&&enemies.length)clash=(Math.max.apply(null,allies.map(function(a){return a.x;}))+Math.min.apply(null,enemies.map(function(e){return e.x;})))*.5;else if(allies.length)clash=Math.max.apply(null,allies.map(function(a){return a.x;}));var targetCam=Math.max(0,Math.min(Math.max(0,MAP_WIDTH-width),clash-width*.5));camX+=(targetCam-camX)*dt*2.5;}
+
+      // Friendly Vanguard Movement & Smart Flow (Prevents Congestion at Base)
+      allies.forEach(a => {
+        a.attackCooldown = Math.max(0, a.attackCooldown - dt);
+        if (a.attackAnim > 0) a.attackAnim -= dt * 4;
+        const hm = hornTimer > 0 ? 1.5 : 1;
+
+        let target = null;
+        let minDist = a.range;
+        enemies.forEach(e => {
+          const dx = e.x - a.x;
+          if (dx > 0 && dx < minDist && Math.abs(e.y - a.y) < 38) {
+            minDist = dx; target = e;
+          }
+        });
+
+        const distToBase = PORC_CASTLE_X - a.x;
+        const targetBase = (distToBase <= a.range + 8);
+
+        if (!target && !targetBase) {
+          // If stuck behind an ally, shift vertically across the lane to flank forward
+          const allyAhead = allies.find(o => o !== a && (o.x - a.x) > 0 && (o.x - a.x) < 22 && Math.abs(o.y - a.y) < 14);
+          if (allyAhead) {
+            a.y += (a.y > HIGHWAY_Y ? -18 : 18) * dt; // Fan out into lane flanks
+            a.x += a.speed * 0.45 * hm * dt;
+          } else {
+            a.x += a.speed * hm * dt;
+          }
+          a.walkCycle += dt * 10;
+        } else if (target && a.attackCooldown <= 0) {
+          a.attackCooldown = 0.85;
+          a.attackAnim = 1.0;
+          if (a.type === 'archer') {
+            rangedShots.push({ x1: a.x, y1: a.y - 14, x2: target.x, y2: target.y - 10, life: 0.14 });
+            AudioEngine.playBowShot();
+          } else {
+            AudioEngine.playEpicClash();
+          }
+          let typeMult = 1;
+          const tType = target.type;
+          if (a.type === 'archer' && tType === 'gladiator') typeMult = 1.15;
+          else if (a.type === 'archer' && tType === 'champion') typeMult = 0.85;
+          else if (a.type === 'brute' && tType === 'champion') typeMult = 1.15;
+          else if (a.type === 'scurrier' && tType === 'warlord') typeMult = 1.15;
+          const finalDmg = a.dmg * hm * typeMult;
+          target.hp -= finalDmg;
+          spawnBlood(target.x, a.y - 10, '#facc15');
+          floatingTexts.push({ x: target.x, y: a.y - 30, text: `-${Math.round(finalDmg)}`, color: '#facc15', life: 0.6 });
+          if (typeMult > 1) floatingTexts.push({ x: target.x, y: target.y - 44, text: "EFFECTIVE!", color: '#fcd34d', life: 0.7 });
+        } else if (targetBase && a.attackCooldown <= 0) {
+          a.attackCooldown = 0.85;
+          a.attackAnim = 1.0;
+          porcBaseHp -= a.dmg * hm;
+          AudioEngine.playEpicClash();
+          spawnBlood(PORC_CASTLE_X - 15, a.y - 15, '#ef4444');
+          updateHUD();
+        }
+      });
+      enemies.forEach(function(e){
+        e.attackCooldown=Math.max(0,e.attackCooldown-dt);e.attackAnim=Math.max(0,e.attackAnim-dt*4);var target=null,min=e.range;
+        allies.forEach(function(a){var dx=e.x-a.x;if(dx>=-3&&dx<min&&Math.abs(a.y-e.y)<35){min=dx;target=a;}});var targetBase=e.x-RAT_CASTLE_X<=e.range;
+        if(!target&&!targetBase){var ahead=enemies.some(function(o){return o!==e&&e.x-o.x>0&&e.x-o.x<18&&Math.abs(o.y-e.y)<16;});if(!ahead){e.x-=e.speed*dt;e.walkCycle+=dt*9;}}
+        else if(target&&e.attackCooldown<=0){e.attackCooldown=1.05;e.attackAnim=1;target.hp-=e.dmg;AudioEngine.playEpicClash();spawnBlood(target.x,e.y-10,'#ef4444');if(target.reflect){var ref=Math.round(e.dmg*target.reflect);e.hp-=ref;floatingTexts.push({x:e.x,y:e.y-30,text:'THORNS −'+ref,color:'#f59e0b',life:.6});}}
+        else if(targetBase&&e.attackCooldown<=0){e.attackCooldown=1.05;e.attackAnim=1;ratBaseHp-=e.dmg;AudioEngine.playEpicClash();spawnBlood(RAT_CASTLE_X,e.y-15,'#22c55e');}
+      });
+      for(var ai=allies.length-1;ai>=0;ai--)if(allies[ai].hp<=0){AudioEngine.playRatDeath();allies.splice(ai,1);}
+      for(var ei=enemies.length-1;ei>=0;ei--)if(enemies[ei].hp<=0){AudioEngine.playPorcupineDeath();biomass=Math.min(maxBiomass,biomass+3);enemies.splice(ei,1);}
+      for(var pi=particles.length-1;pi>=0;pi--){var p=particles[pi];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=95*dt;p.life-=dt;if(p.life<=0)particles.splice(pi,1);}
+      for(var fi=floatingTexts.length-1;fi>=0;fi--){var ft=floatingTexts[fi];ft.y-=25*dt;ft.life-=dt;if(ft.life<=0)floatingTexts.splice(fi,1);}
+      if(porcBaseHp<=0)handleVictory();else if(ratBaseHp<=0)handleDefeat();
+    }
+
+    // 1. Clean, Vibrant Sunny Woodland (No background fighting blobs, no lollipop trees)
+    function drawSunlitMeadow() {
+      // Sky gradient
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, HIGHWAY_Y);
+      skyGrad.addColorStop(0, '#0ea5e9');
+      skyGrad.addColorStop(0.55, '#7dd3fc');
+      skyGrad.addColorStop(1, '#e0f2fe');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(-200, 0, MAP_WIDTH + 400, height);
+
+      // Small sun with soft halo
+      ctx.fillStyle = 'rgba(254, 240, 138, 0.35)';
+      ctx.beginPath(); ctx.arc(1560, 40, 30, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fefce8';
+      ctx.beginPath(); ctx.arc(1560, 40, 17, 0, Math.PI * 2); ctx.fill();
+
+      // Drifting clouds
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      const clouds = [[300, 55, 1], [900, 35, 0.7], [1400, 70, 1.2], [1980, 45, 0.8]];
+      clouds.forEach(c => {
+        const cx = c[0], cy = c[1], cs = c[2];
+        ctx.beginPath();
+        ctx.arc(cx, cy, 18 * cs, 0, Math.PI * 2);
+        ctx.arc(cx + 20 * cs, cy - 6 * cs, 14 * cs, 0, Math.PI * 2);
+        ctx.arc(cx - 20 * cs, cy - 4 * cs, 13 * cs, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Distant pale hills (fill down to the road)
+      ctx.fillStyle = '#a7f3d0';
+      ctx.beginPath();
+      ctx.moveTo(-200, HIGHWAY_Y - 70);
+      for (let x = -200; x <= MAP_WIDTH + 200; x += 160) {
+        ctx.quadraticCurveTo(x + 80, HIGHWAY_Y - 150 + Math.sin(x * 0.008) * 24, x + 160, HIGHWAY_Y - 70);
+      }
+      ctx.lineTo(MAP_WIDTH + 200, HIGHWAY_Y - ROAD_HALF_WIDTH);
+      ctx.lineTo(-200, HIGHWAY_Y - ROAD_HALF_WIDTH);
+      ctx.closePath(); ctx.fill();
+
+      // Near vivid hills rolling down to the road
+      ctx.fillStyle = '#4ade80';
+      ctx.beginPath();
+      ctx.moveTo(-200, HIGHWAY_Y - ROAD_HALF_WIDTH);
+      for (let x = -200; x <= MAP_WIDTH + 200; x += 130) {
+        ctx.quadraticCurveTo(x + 65, HIGHWAY_Y - 115 + Math.cos(x * 0.011) * 20, x + 130, HIGHWAY_Y - ROAD_HALF_WIDTH);
+      }
+      ctx.lineTo(MAP_WIDTH + 200, HIGHWAY_Y - ROAD_HALF_WIDTH);
+      ctx.lineTo(-200, HIGHWAY_Y - ROAD_HALF_WIDTH);
+      ctx.closePath(); ctx.fill();
+
+      // Southern grass field below the road
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(-200, HIGHWAY_Y + ROAD_HALF_WIDTH, MAP_WIDTH + 400, height);
+
+      // Green ground mounds under the northern tree line (trees sit in grass, not sky)
+      ctx.fillStyle = '#16a34a';
+      for (let tx = -100; tx < MAP_WIDTH + 150; tx += 85) {
+        const crestY = HIGHWAY_Y - 110 + Math.cos(tx * 0.011) * 18;
+        ctx.beginPath();
+        ctx.ellipse(tx, crestY + 8, 58, 24, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // Pines planted on the mounds
+      for (let tx = -100; tx < MAP_WIDTH + 150; tx += 85) {
+        const crestY = HIGHWAY_Y - 110 + Math.cos(tx * 0.011) * 18;
+        drawWoodlandPine(tx, crestY, 0.85);
+      }
+      for (let tx = -80; tx < MAP_WIDTH + 150; tx += 130) {
+        drawWoodlandPine(tx, HIGHWAY_Y + ROAD_HALF_WIDTH + 40, 1.0);
+      }
+      for (let tx = -20; tx < MAP_WIDTH + 150; tx += 210) {
+        drawWoodlandPine(tx, height - 30, 1.15);
+      }
+    }
+
+    function drawWoodlandPine(x, y, scale) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scale, scale);
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.beginPath(); ctx.ellipse(0, 4, 14, 5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(-3, -12, 6, 16);
+      const tiers = [[0, -52, 20], [0, -38, 26], [0, -24, 30]];
+      tiers.forEach(t => {
+        ctx.fillStyle = '#166534';
+        ctx.beginPath();
+        ctx.moveTo(t[0], t[1]);
+        ctx.lineTo(t[0] - t[2], t[1] + 26);
+        ctx.lineTo(t[0] + t[2], t[1] + 26);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = 'rgba(134, 239, 172, 0.5)';
+        ctx.beginPath();
+        ctx.moveTo(t[0], t[1]);
+        ctx.lineTo(t[0] - t[2] * 0.45, t[1] + 26);
+        ctx.lineTo(t[0], t[1] + 26);
+        ctx.closePath(); ctx.fill();
+      });
+      ctx.restore();
+    }
+    function drawAmbientArtilleryArcs(){
+      ambientArcProjectiles.forEach(function(ap){
+        var curX=ap.startX+(ap.targetX-ap.startX)*ap.progress,arcHeight=Math.sin(ap.progress*Math.PI)*(HIGHWAY_Y-ap.peakY),curY=HIGHWAY_Y-arcHeight;
+        ctx.save();ctx.fillStyle=ap.isFiery?'rgba(251,146,60,.9)':'rgba(203,213,225,.82)';ctx.shadowColor=ap.isFiery?'#ef6b3b':'#d5dde4';ctx.shadowBlur=ap.isFiery?11:5;ctx.beginPath();ctx.arc(curX,curY,ap.isFiery?4:3,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+        ctx.strokeStyle=ap.isFiery?'rgba(239,68,68,.46)':'rgba(71,85,105,.42)';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(curX-(ap.targetX-ap.startX)*.04,curY+4);ctx.lineTo(curX,curY);ctx.stroke();ctx.restore();
+      });
+    }
+    function drawStoneHighwayAndRiver(time){
+      var river=ctx.createLinearGradient(RIVER_X-34,0,RIVER_X+34,0);river.addColorStop(0,'#176990');river.addColorStop(.5,'#58c6dc');river.addColorStop(1,'#176990');ctx.fillStyle=river;ctx.fillRect(RIVER_X-34,0,68,height);
+      ctx.strokeStyle='rgba(255,255,255,.38)';ctx.lineWidth=2;for(var y=20;y<height;y+=31){var sw=Math.sin(time*2+y)*6;ctx.beginPath();ctx.moveTo(RIVER_X-24+sw,y);ctx.lineTo(RIVER_X+24+sw,y);ctx.stroke();}
+      ctx.fillStyle='#6b6f70';ctx.fillRect(-200,HIGHWAY_Y-ROAD_HALF_WIDTH,MAP_WIDTH+400,ROAD_HALF_WIDTH*2);ctx.fillStyle='rgba(255,255,255,.1)';ctx.fillRect(-200,HIGHWAY_Y-ROAD_HALF_WIDTH+6,MAP_WIDTH+400,5);
+      ctx.strokeStyle='#4c5051';ctx.lineWidth=1.5;for(var rx=0;rx<MAP_WIDTH;rx+=70){ctx.beginPath();ctx.moveTo(rx,HIGHWAY_Y-ROAD_HALF_WIDTH);ctx.lineTo(rx,HIGHWAY_Y+ROAD_HALF_WIDTH);ctx.stroke();}
+      ctx.fillStyle='#846544';ctx.fillRect(RIVER_X-46,HIGHWAY_Y-ROAD_HALF_WIDTH-8,92,ROAD_HALF_WIDTH*2+16);ctx.fillStyle='#513922';for(var b=RIVER_X-42;b<RIVER_X+46;b+=14)ctx.fillRect(b,HIGHWAY_Y-ROAD_HALF_WIDTH-8,4,ROAD_HALF_WIDTH*2+16);
+      ctx.strokeStyle='#d1b36b';ctx.lineWidth=3;ctx.setLineDash([8,6]);ctx.beginPath();ctx.moveTo(RIVER_X,HIGHWAY_Y-ROAD_HALF_WIDTH-8);ctx.lineTo(RIVER_X,HIGHWAY_Y+ROAD_HALF_WIDTH+8);ctx.stroke();ctx.setLineDash([]);
+    }
+    function drawRatBurrowBastion(x,y){
+      ctx.fillStyle='rgba(0,0,0,.3)';ctx.beginPath();ctx.ellipse(x,y+35,82,20,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#4a2e1e';ctx.beginPath();ctx.ellipse(x,y,75,55,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#255c32';ctx.lineWidth=5;ctx.stroke();ctx.fillStyle='#090b09';ctx.beginPath();ctx.ellipse(x+25,y,32,38,0,0,Math.PI*2);ctx.fill();
+      // Mounted crossbow — swivels to track enemies
+      const cxf = x + 10, cyf = y - 40;
+      ctx.fillStyle = '#3f3f46';
+      ctx.beginPath();
+      ctx.moveTo(cxf - 14, cyf + 22); ctx.lineTo(cxf + 14, cyf + 22); ctx.lineTo(cxf + 8, cyf + 2); ctx.lineTo(cxf - 8, cyf + 2);
+      ctx.closePath(); ctx.fill();
+      ctx.save();
+      ctx.translate(cxf, cyf);
+      ctx.rotate(ratAimAngle);
+      ctx.fillStyle = '#713f12';
+      ctx.fillRect(-6, -4, 34, 8);
+      ctx.strokeStyle = '#a8a29e'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(24, -14); ctx.quadraticCurveTo(30, 0, 24, 14); ctx.stroke();
+      ctx.strokeStyle = '#e7e5e4'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(24, -14); ctx.lineTo(16, 0); ctx.lineTo(24, 14); ctx.stroke();
+      ctx.strokeStyle = '#d6d3d1'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(16, 0); ctx.lineTo(34, 0); ctx.stroke();
+      ctx.fillStyle = '#facc15';
+      ctx.beginPath(); ctx.moveTo(34, -3); ctx.lineTo(40, 0); ctx.lineTo(34, 3); ctx.closePath(); ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = '#86efac'; ctx.font = 'bold 9px sans-serif';
+      ctx.fillText('SLINGER', cxf - 18, cyf - 30);
+      ctx.strokeStyle='#63c77c';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x-22,y-82);ctx.lineTo(x-22,y);ctx.stroke();ctx.fillStyle='#23773e';ctx.beginPath();ctx.moveTo(x-20,y-79);ctx.lineTo(x+21,y-66);ctx.lineTo(x-20,y-47);ctx.fill();
+    }
+    function drawPorcupineCitadel(x,y){
+      ctx.fillStyle='rgba(0,0,0,.3)';ctx.beginPath();ctx.ellipse(x,y+37,88,21,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#512910';ctx.beginPath();ctx.ellipse(x,y,80,58,0,0,Math.PI*2);ctx.fill();
+      for(var py=-45;py<=45;py+=18){ctx.fillStyle='#8b4b20';ctx.beginPath();ctx.moveTo(x-40,y+py);ctx.lineTo(x-69,y+py+6);ctx.lineTo(x-40,y+py+12);ctx.fill();}
+      // Heavy ballista — swivels to track attackers
+      const pxf = x - 14, pyf = y - 40;
+      ctx.fillStyle = '#292524';
+      ctx.beginPath();
+      ctx.moveTo(pxf - 16, pyf + 24); ctx.lineTo(pxf + 16, pyf + 24); ctx.lineTo(pxf + 9, pyf + 2); ctx.lineTo(pxf - 9, pyf + 2);
+      ctx.closePath(); ctx.fill();
+      ctx.save();
+      ctx.translate(pxf, pyf);
+      ctx.rotate(porcAimAngle);
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(-8, -5, 40, 10);
+      ctx.strokeStyle = '#78716c'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(28, -17); ctx.quadraticCurveTo(36, 0, 28, 17); ctx.stroke();
+      ctx.strokeStyle = '#fef3c7'; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(28, -17); ctx.lineTo(18, 0); ctx.lineTo(28, 17); ctx.stroke();
+      ctx.strokeStyle = '#e7e5e4'; ctx.lineWidth = 3.5;
+      ctx.beginPath(); ctx.moveTo(18, 0); ctx.lineTo(40, 0); ctx.stroke();
+      ctx.fillStyle = '#fde047';
+      ctx.beginPath(); ctx.moveTo(40, -4); ctx.lineTo(48, 0); ctx.lineTo(40, 4); ctx.closePath(); ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = '#fde047'; ctx.font = 'bold 9px sans-serif';
+      ctx.fillText('BALLISTA', pxf - 22, pyf - 34);
+      ctx.strokeStyle='#ef5d51';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x+22,y-86);ctx.lineTo(x+22,y);ctx.stroke();ctx.fillStyle='#ae2725';ctx.beginPath();ctx.moveTo(x+20,y-83);ctx.lineTo(x-22,y-70);ctx.lineTo(x+20,y-51);ctx.fill();
+    }
+    function drawTurretProjectiles() {
+      activeTurretShots.forEach(s => {
+        const ang = Math.atan2(s.ty - s.y, s.tx - s.x);
+        ctx.save();
+        ctx.translate(s.x, s.y);
+        ctx.rotate(ang);
+        if (s.isQuill) {
+          ctx.strokeStyle = '#fde047'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(-8, 0); ctx.lineTo(6, 0); ctx.stroke();
+          ctx.fillStyle = '#fde047';
+          ctx.beginPath(); ctx.moveTo(6, -3); ctx.lineTo(13, 0); ctx.lineTo(6, 3); ctx.closePath(); ctx.fill();
+        } else {
+          ctx.strokeStyle = '#d6d3d1'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(-9, 0); ctx.lineTo(7, 0); ctx.stroke();
+          ctx.strokeStyle = '#b91c1c'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(-9, 0); ctx.lineTo(-5, -4); ctx.moveTo(-9, 0); ctx.lineTo(-5, 4); ctx.stroke();
+          ctx.fillStyle = '#78716c';
+          ctx.beginPath(); ctx.moveTo(7, -2.5); ctx.lineTo(13, 0); ctx.lineTo(7, 2.5); ctx.closePath(); ctx.fill();
+        }
+        ctx.restore();
+      });
+    }
+    function healthBar(x,y,w,ratio,color){ctx.fillStyle='rgba(0,0,0,.78)';ctx.fillRect(x-w/2,y,w,5);ctx.fillStyle=color;ctx.fillRect(x-w/2+1,y+1,Math.max(0,(w-2)*ratio),3);}
+    function drawSword(){
+      ctx.save();
+      ctx.rotate(Math.atan2(-3,19));
+      var blade=ctx.createLinearGradient(0,-2,0,2);
+      blade.addColorStop(0,'#e8edf2');
+      blade.addColorStop(1,'#9aa5b1');
+      ctx.fillStyle=blade;
+      ctx.beginPath();
+      ctx.moveTo(5,-1.8);ctx.lineTo(16,-1.25);ctx.lineTo(19,0);ctx.lineTo(16,1.25);ctx.lineTo(5,1.8);ctx.closePath();ctx.fill();
+      ctx.strokeStyle='#66717d';ctx.lineWidth=.65;ctx.beginPath();ctx.moveTo(5.5,0);ctx.lineTo(17.4,0);ctx.stroke();
+      ctx.strokeStyle='rgba(255,255,255,.88)';ctx.lineWidth=.55;ctx.beginPath();ctx.moveTo(5.4,-1.15);ctx.lineTo(15.9,-.75);ctx.lineTo(18.1,0);ctx.stroke();
+      ctx.strokeStyle='#8a6d3b';ctx.lineWidth=2.4;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(5,-4);ctx.lineTo(5,4);ctx.stroke();
+      ctx.fillStyle='#3a2a1a';ctx.fillRect(.8,-1.35,4,2.7);
+      ctx.strokeStyle='#74573a';ctx.lineWidth=.6;for(var w=1.4;w<4.6;w+=1.1){ctx.beginPath();ctx.moveTo(w,-1.3);ctx.lineTo(w+.7,1.3);ctx.stroke();}
+      ctx.fillStyle='#9aa5b1';ctx.beginPath();ctx.arc(.5,0,1.6,0,Math.PI*2);ctx.fill();
+      ctx.restore();
+    }
+    function drawWarcraftRat(u){
+      ctx.save();ctx.translate(u.x,u.y);var brute=u.type==='brute',step=Math.sin(u.walkCycle)*6;ctx.strokeStyle='#29190e';ctx.lineWidth=brute?5:4;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-3,0);ctx.lineTo(-6-step,12);ctx.moveTo(3,0);ctx.lineTo(5+step,12);ctx.stroke();ctx.strokeStyle='#e993a5';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-6,-4);ctx.quadraticCurveTo(-20,-7,-28,7);ctx.stroke();ctx.fillStyle=brute?'#364846':'#4a3320';ctx.beginPath();ctx.ellipse(0,-10,brute?15:10,brute?18:13,0,0,Math.PI*2);ctx.fill();
+      if(brute)for(var q=-11;q<=8;q+=5){ctx.strokeStyle='#e9d6a7';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-9,q-10);ctx.lineTo(-27,q-17);ctx.stroke();}
+      ctx.fillStyle='#28180d';ctx.beginPath();ctx.moveTo(-2,-24);ctx.lineTo(15,-18);ctx.lineTo(-2,-12);ctx.fill();ctx.fillStyle='#ef96aa';ctx.beginPath();ctx.arc(15,-18,2,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(-3,-23,4.5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ef3e3e';ctx.beginPath();ctx.arc(4,-20,1.8,0,Math.PI*2);ctx.fill();ctx.save();ctx.translate(2,-10);ctx.rotate(-u.attackAnim*1.5);if(brute){ctx.fillStyle='#71807d';ctx.fillRect(8,-18,8,34);ctx.strokeStyle='#e3b450';ctx.lineWidth=2;ctx.strokeRect(8,-18,8,34);}else if(u.type==='scurrier'){drawSword();}ctx.restore();
+      if (u.type === 'archer') {
+        ctx.strokeStyle = '#8b5a2b'; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.arc(11, -10, 12, -1.2, 1.2); ctx.stroke();
+        ctx.strokeStyle = '#e7e5e4'; ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(11 + Math.cos(-1.2) * 12, -10 + Math.sin(-1.2) * 12);
+        ctx.lineTo(11 + Math.cos(1.2) * 12, -10 + Math.sin(1.2) * 12);
+        ctx.stroke();
+      }
+      ctx.restore();
+      const bW = u.type === 'brute' ? 36 : 24;
+      healthBar(u.x,u.y-(brute?40:36),bW,u.hp/u.maxHp,'#49cd69');
+    }
+    // 2. Anatomical Porcupine War-Beast (Low hunched rodent, heavy paws, dense quill crown)
+    function drawGladiatorPorcupine(e) {
+      ctx.save();
+      ctx.translate(e.x, e.y);
+      const s = e.isBoss ? 1.5 : e.type === 'champion' ? 1.25 : 1.05;
+
+      // Ground shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath();
+      ctx.ellipse(0, 12 * s, 30 * s, 9 * s, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Legs
+      const step = Math.sin(e.walkCycle) * 6 * s;
+      ctx.strokeStyle = '#17100a'; ctx.lineWidth = 7 * s; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-10 * s, 2 * s); ctx.lineTo(-12 * s, 12 * s + step * 0.4); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(8 * s, 2 * s); ctx.lineTo(10 * s, 12 * s - step * 0.4); ctx.stroke();
+
+      // Tall rounded beast torso
+      const bodyGrad = ctx.createLinearGradient(0, -30 * s, 0, 8 * s);
+      bodyGrad.addColorStop(0, '#3a2417');
+      bodyGrad.addColorStop(1, '#1c110a');
+      ctx.fillStyle = bodyGrad;
+      ctx.beginPath();
+      ctx.ellipse(0, -10 * s, 17 * s, 17 * s, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Dramatic quill crown fanning upward and swept back
+      ctx.lineCap = 'round';
+      for (let i = 0; i < 12; i++) {
+        const t = i / 11;
+        const rootX = (-12 + t * 26) * s;
+        const rootY = (-20 - Math.sin(t * Math.PI) * 6) * s;
+        const qLen = (30 + Math.sin(t * Math.PI) * 14) * s;
+        const ang = -Math.PI * 0.5 + (t - 0.5) * 1.1;
+        const tipX = rootX + Math.cos(ang) * qLen;
+        const tipY = rootY + Math.sin(ang) * qLen;
+        ctx.strokeStyle = '#f5f0dc'; ctx.lineWidth = 3.4 * s;
+        ctx.beginPath(); ctx.moveTo(rootX, rootY); ctx.lineTo(tipX, tipY); ctx.stroke();
+        ctx.strokeStyle = '#0a0a0a'; ctx.lineWidth = 2.2 * s;
+        ctx.beginPath();
+        ctx.moveTo(rootX + (tipX - rootX) * 0.72, rootY + (tipY - rootY) * 0.72);
+        ctx.lineTo(tipX, tipY);
+        ctx.stroke();
+      }
+
+      // Raised head facing left
+      ctx.fillStyle = '#241610';
+      ctx.beginPath();
+      ctx.ellipse(-16 * s, -16 * s, 9 * s, 8 * s, -0.3, 0, Math.PI * 2);
+      ctx.fill();
+      // Snout
+      ctx.fillStyle = '#160d08';
+      ctx.beginPath();
+      ctx.moveTo(-22 * s, -20 * s); ctx.lineTo(-32 * s, -14 * s); ctx.lineTo(-22 * s, -10 * s);
+      ctx.closePath(); ctx.fill();
+      // Nose and glowing amber eye with pupil
+      ctx.fillStyle = '#000000';
+      ctx.beginPath(); ctx.arc(-30 * s, -14 * s, 2.4 * s, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fbbf24';
+      ctx.beginPath(); ctx.arc(-17 * s, -18 * s, 2.6 * s, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#000000';
+      ctx.beginPath(); ctx.arc(-17 * s, -18 * s, 1.1 * s, 0, Math.PI * 2); ctx.fill();
+
+      // Spiked club arm
+      ctx.save();
+      ctx.translate(10 * s, -8 * s);
+      ctx.rotate(e.attackAnim * 1.5);
+      ctx.fillStyle = '#4a2c12';
+      ctx.fillRect(-2.5 * s, -16 * s, 5 * s, 20 * s);
+      ctx.fillStyle = '#e7dcc0';
+      for (let k = -1; k <= 1; k++) {
+        ctx.beginPath();
+        ctx.moveTo((k * 4 - 2) * s, -16 * s);
+        ctx.lineTo((k * 4) * s, -22 * s);
+        ctx.lineTo((k * 4 + 2) * s, -16 * s);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.restore();
+
+      ctx.restore();
+
+      // Health bar
+      const bW = 36 * s;
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.fillRect(e.x - bW / 2, e.y - 40 * s, bW, 5);
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(e.x - bW / 2, e.y - 40 * s, bW * Math.max(0, e.hp / e.maxHp), 5);
+    }
+    // 3. Clean Main Render Pipeline (Background skirmishes permanently removed)
+    function renderElevatedField(time) {
+      ctx.clearRect(0, 0, width, height);
+      ctx.save();
+      ctx.translate(-camX, 0);
+
+      drawSunlitMeadow();
+      drawStoneHighwayAndRiver();
+
+      drawRatBurrowBastion(RAT_CASTLE_X, HIGHWAY_Y);
+      drawPorcupineCitadel(PORC_CASTLE_X, HIGHWAY_Y);
+      drawTurretProjectiles();
+      rangedShots.forEach(s => {
+        ctx.save();
+        ctx.strokeStyle = '#d6a85c'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); ctx.stroke();
+        ctx.restore();
+      });
+      shockwaves.forEach(s => {
+        ctx.save();
+        ctx.strokeStyle = `rgba(250, 204, 21, ${Math.max(0, s.life)})`;
+        ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+      });
+
+      allies.forEach(a => drawWarcraftRat(a));
+      enemies.forEach(e => drawGladiatorPorcupine(e));
+
+      particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x, p.y, p.size, p.size);
+      });
+      floatingTexts.forEach(ft => {
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillStyle = ft.color;
+        ctx.fillText(ft.text, ft.x - 8, ft.y);
+      });
+
+      ctx.restore();
+    }
+
+    var lastTime=performance.now();function loop(now){var dt=Math.min(.06,(now-lastTime)/1000);lastTime=now;if(isGameRunning)updateSimulation(dt);renderElevatedField(now*.001);requestAnimationFrame(loop);}
+    updateMenuState();updateHUD();requestAnimationFrame(loop);
+
+    // Begin the menu chant at the earliest moment audio is allowed (first tap)
+    try { AudioEngine.init(); } catch (e) {}
+    window.addEventListener('pointerdown', () => { AudioEngine.init(); }, { once: true });
+  })();
+  </script>
+<script>
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}
+</script>
+</body>
+</html>
