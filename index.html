@@ -475,24 +475,38 @@
         this.stopBGM();
         if (!this.ctx || !this.bgmGainNode) return;
         this.bgmGainNode.gain.setValueAtTime(this.musicEnabled ? 0.22 : 0.0, this.ctx.currentTime);
-        const bpm = 104, beat = 60 / bpm;
-        const bassPhrases = [
-          [73.42, 73.42, 87.31, 98.00],
-          [73.42, 73.42, 110.00, 98.00],
+        // Folk tune: D-dorian tavern melody over Dm - C - G - Dm (4 bars)
+        const bpm = 100, beat = 60 / bpm;
+        const roots = [73.42, 65.41, 98.00, 73.42]; // D2 C2 G2 D2
+        const pads = [
+          [146.83, 174.61, 220.00], // Dm
+          [130.81, 164.81, 196.00], // C
+          [196.00, 246.94, 293.66], // G
+          [146.83, 174.61, 220.00], // Dm
         ];
-        const leadLine = [587.33, 659.26, 739.99, 880.00, 739.99, 659.26, 587.33, 523.25];
+        // 8th-note melody, 0 = rest
+        const melody = [
+          587.33, 659.26, 698.46, 659.26, 587.33, 523.25, 440.00, 0,
+          587.33, 698.46, 880.00, 783.99, 698.46, 659.26, 587.33, 0,
+          880.00, 783.99, 698.46, 659.26, 587.33, 659.26, 698.46, 0,
+          698.46, 659.26, 587.33, 523.25, 587.33, 0, 0, 0,
+        ];
         let step = 0;
         this.gameTimer = setInterval(() => {
           if (!this.ctx || this.ctx.state !== 'running' || !this.musicEnabled) return;
           const now = this.ctx.currentTime;
           const s16 = step % 16;
-          const bar2 = (step >> 4) % 2;
-          if (s16 % 4 === 0) this._bgmKick(now);
-          if (s16 === 4 || s16 === 12) this._bgmClap(now);
-          if (s16 % 2 === 0) this._bgmHat(now, 0.03);
-          if (s16 % 4 === 0) this._bgmBass(now, bassPhrases[bar2][s16 >> 2], beat * 0.9);
-          if (s16 % 8 === 2) this._bgmPluck(now, leadLine[(step >> 3) % 8] * 0.5);
-          if (s16 === 0) this._bgmPad(now, [146.83, 185.00, 220.00, 293.66], beat * 8);
+          const bar = (step >> 4) % 4;
+          if (s16 === 0) {
+            this._bgmPad(now, pads[bar], beat * 3.6);
+            this._bgmBass(now, roots[bar], beat * 2.5);
+          }
+          if (s16 === 8) this._bgmBass(now, roots[bar] * 1.5, beat * 1.2);
+          if (step % 2 === 0) this._bgmHat(now, 0.012); // soft shaker
+          if (step % 2 === 0) {
+            const m = melody[(step >> 1) % 32];
+            if (m) this._bgmPluck(now, m);
+          }
           step++;
         }, (beat / 4) * 1000);
       },
