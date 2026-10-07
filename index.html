@@ -66,7 +66,7 @@
     #save-toast { position:absolute; z-index:320; top:max(14px,env(safe-area-inset-top)); left:50%; padding:9px 16px; transform:translate(-50%,-12px); opacity:0; border:1px solid #d7ba52; border-radius:5px; background:#173521; color:#fff1ae; box-shadow:0 7px 20px rgba(0,0,0,.6); font-size:10px; font-weight:900; letter-spacing:.035em; pointer-events:none; transition:opacity .18s,transform .18s; }
     #save-toast.show { opacity:1; transform:translate(-50%,0); }
 
-    #mission-modal,#settings-modal,#reset-modal,#result-modal {
+    #mission-modal,#settings-modal,#reset-modal,#result-modal,#pause-modal {
       position:absolute; inset:0; z-index:260; display:none; align-items:center; justify-content:center; padding:14px; background:rgba(3,9,5,.88);
     }
     .modal-box { width:min(540px,94vw); padding:18px; border:1px solid #c2a647; border-radius:8px; background:linear-gradient(155deg,#193522,#0e1d13); box-shadow:0 18px 50px #000; text-align:center; }
@@ -91,6 +91,7 @@
     .stat-val { color:var(--green); font-size:14px; font-weight:900; line-height:1.15; }
     .hud-btn { min-height:32px; padding:6px 10px; border:1px solid var(--line); border-radius:5px; background:var(--panel); color:#eef8e8; font-size:9px; font-weight:900; cursor:pointer; box-shadow:0 4px 12px var(--shadow); }
     .hud-btn[aria-pressed="true"] { border-color:var(--gold); color:#ffe993; }
+    #btn-hud-menu { min-height:46px; padding:10px 20px; font-size:13px; border-color:var(--gold); }
 
     #deploy-deck { position:absolute; z-index:30; top:max(10px,env(safe-area-inset-top)); left:50%; transform:translateX(-50%); display:flex; gap:11px; }
     .unit-card { position:relative; width:72px; height:80px; padding:7px 5px 5px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; border:2px solid #3ca95c; border-radius:8px; background:linear-gradient(155deg,rgba(34,70,43,.97),rgba(11,25,15,.97)); box-shadow:inset 0 1px rgba(255,255,255,.13),0 5px 14px rgba(0,0,0,.55); cursor:pointer; touch-action:manipulation; }
@@ -182,6 +183,18 @@
       <div class="setting-row"><span>BACKGROUND MUSIC</span><button class="toggle-btn" id="toggle-music" type="button" aria-pressed="true">ON</button></div>
       <div class="setting-row"><span>SOUND EFFECTS</span><button class="toggle-btn" id="toggle-sfx" type="button" aria-pressed="true">ON</button></div>
       <div class="modal-actions"><button class="modal-btn" id="btn-close-settings" type="button">CLOSE</button></div>
+    </div>
+  </section>
+
+  <section id="pause-modal" role="dialog" aria-modal="true" aria-labelledby="pause-title">
+    <div class="modal-box">
+      <h2 id="pause-title">PAUSED</h2>
+      <p>The swarm holds its breath. The battle waits for your command.</p>
+      <div class="modal-actions" style="flex-direction:column;align-items:stretch;">
+        <button class="modal-btn" id="btn-resume" type="button">RESUME</button>
+        <button class="modal-btn" id="btn-pause-audio" type="button">AUDIO SETTINGS</button>
+        <button class="modal-btn" id="btn-quit-menu" type="button">QUIT TO MAIN MENU</button>
+      </div>
     </div>
   </section>
 
@@ -660,7 +673,8 @@
     var bannerTimer=0,resultAction=null;
     var stageNames=['OUTSKIRT BRIARS','TIMBER POST','THORN CORRIDOR','SPIKED RUNWAY','BRAMBLE REDOUBT','THE QUILLERIES','IRON PALISADE','HIGH SHIELD BASTION',"SOVEREIGN'S GATE",'CITADEL OF THORN-QUILL'];
 
-    var menuScreen=document.getElementById('menu-screen'),missionModal=document.getElementById('mission-modal'),settingsModal=document.getElementById('settings-modal'),resetModal=document.getElementById('reset-modal'),resultModal=document.getElementById('result-modal');
+    var menuScreen=document.getElementById('menu-screen'),missionModal=document.getElementById('mission-modal'),settingsModal=document.getElementById('settings-modal'),resetModal=document.getElementById('reset-modal'),resultModal=document.getElementById('result-modal'),pauseModal=document.getElementById('pause-modal');
+    var settingsReturn=null;
     var cardScurrier=document.getElementById('card-scurrier'),cardBrute=document.getElementById('card-brute'),cardArcher=document.getElementById('card-archer'),panicBtn=document.getElementById('panic-btn');
     var toggleMusic=document.getElementById('toggle-music'),toggleSfx=document.getElementById('toggle-sfx');
 
@@ -740,7 +754,7 @@
 
     var settingsWasRunning=false;
     function openSettings(){AudioEngine.init();settingsWasRunning=isGameRunning;isGameRunning=false;updateHUD();settingsModal.style.display='flex';}
-    function closeSettings(){settingsModal.style.display='none';isGameRunning=settingsWasRunning;settingsWasRunning=false;updateHUD();}
+    function closeSettings(){settingsModal.style.display='none';isGameRunning=settingsWasRunning;settingsWasRunning=false;updateHUD();if(settingsReturn==='pause'){settingsReturn=null;pauseModal.style.display='flex';}}
     function setToggleState(button,enabled){button.textContent=enabled?'ON':'OFF';button.classList.toggle('off',!enabled);button.setAttribute('aria-pressed',String(enabled));}
     document.getElementById('btn-menu-continue').addEventListener('click',function(){startGameplay(gameState.currentStage);});
     document.getElementById('btn-menu-select').addEventListener('click',function(){AudioEngine.init();populateMissionGrid();missionModal.style.display='flex';});
@@ -753,7 +767,10 @@
     document.getElementById('btn-menu-new').addEventListener('click',function(){resetModal.style.display='flex';});
     document.getElementById('btn-cancel-reset').addEventListener('click',function(){resetModal.style.display='none';});
     document.getElementById('btn-confirm-reset').addEventListener('click',function(){gameState.highestCleared=0;gameState.unlockedBrute=false;gameState.unlockedArcher=false;gameState.currentStage=1;try{localStorage.removeItem(TIDE_SAVE_KEY);}catch(e){}syncStateToUrl();updateMenuState();resetModal.style.display='none';startGameplay(1);});
-    document.getElementById('btn-hud-menu').addEventListener('click',function(){isGameRunning=false;updateHUD();updateMenuState();menuScreen.style.display='flex';AudioEngine.startMenuBGM();});
+    document.getElementById('btn-hud-menu').addEventListener('click',function(){if(!isGameRunning)return;isGameRunning=false;updateHUD();pauseModal.style.display='flex';});
+    document.getElementById('btn-resume').addEventListener('click',function(){pauseModal.style.display='none';isGameRunning=true;updateHUD();});
+    document.getElementById('btn-pause-audio').addEventListener('click',function(){pauseModal.style.display='none';settingsReturn='pause';openSettings();});
+    document.getElementById('btn-quit-menu').addEventListener('click',function(){pauseModal.style.display='none';updateHUD();updateMenuState();menuScreen.style.display='flex';AudioEngine.startMenuBGM();});
     document.getElementById('btn-result').addEventListener('click',function(){resultModal.style.display='none';if(resultAction){var action=resultAction;resultAction=null;action();}});
     document.getElementById('btn-cam-pan').addEventListener('click',function(){autoPan=!autoPan;this.textContent=autoPan?'CAM AUTO':'CAM FREE';this.setAttribute('aria-pressed',String(autoPan));});
 
