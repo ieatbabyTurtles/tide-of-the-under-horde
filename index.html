@@ -160,6 +160,7 @@
     <p id="menu-subtitle">PORCUPINE BARONY · TEN-STAGE VANGUARD CAMPAIGN</p>
     <div class="menu-btns">
       <button class="menu-btn" id="btn-menu-continue" type="button">START CAMPAIGN</button>
+      <button class="menu-btn secondary" id="btn-menu-howto" type="button">HOW TO PLAY</button>
       <button class="menu-btn secondary" id="btn-menu-select" type="button">MISSION SELECT</button>
       <button class="menu-btn secondary" id="btn-menu-settings" type="button">SETTINGS</button>
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
@@ -706,7 +707,7 @@
       const ov = document.getElementById('tutorial-overlay');
       if (i < 0 || i >= tutorialSteps.length) { ov.style.display = 'none'; tutorialStep = -1; return; }
       document.getElementById('tutorial-text').innerText = tutorialSteps[i];
-      document.getElementById('tutorial-next').innerText = (i === tutorialSteps.length - 1) ? "FIGHT! ⚔" : "NEXT ➤";
+      document.getElementById('tutorial-next').innerText = (i === tutorialSteps.length - 1) ? "DONE ✓" : "NEXT ➤";
       ov.style.display = 'block';
     }
     document.getElementById('tutorial-next').addEventListener('click', () => {
@@ -737,7 +738,7 @@
       ratAimAngle = 0; porcAimAngle = Math.PI;
       document.getElementById('card-archer').classList.toggle('locked', !gameState.unlockedArcher);
       document.getElementById('mission-badge').textContent=lvl+'/10';document.getElementById('enemy-base-name').textContent=stageNames[lvl-1];updateHUD();showBanner('STAGE '+lvl+' · '+stageNames[lvl-1]);
-      if (lvl === 1 && gameState.highestCleared === 0 && !gameState.tutorialSeen) showTutorialStep(0); else showTutorialStep(-1);
+      showTutorialStep(-1); // tutorial is opt-in from the main menu, never auto-shown
     }
     function updateHUD(){
       document.getElementById('bio-val').textContent=Math.floor(biomass)+'/'+maxBiomass;
@@ -763,6 +764,7 @@
     function setToggleState(button,enabled){button.textContent=enabled?'ON':'OFF';button.classList.toggle('off',!enabled);button.setAttribute('aria-pressed',String(enabled));}
     document.getElementById('btn-menu-continue').addEventListener('click',function(){startGameplay(gameState.currentStage);});
     document.getElementById('btn-menu-select').addEventListener('click',function(){AudioEngine.init();populateMissionGrid();missionModal.style.display='flex';});
+    document.getElementById('btn-menu-howto').addEventListener('click',function(){AudioEngine.init();showTutorialStep(0);});
     document.getElementById('btn-close-mission').addEventListener('click',function(){missionModal.style.display='none';});
     document.getElementById('btn-menu-settings').addEventListener('click',openSettings);
     document.getElementById('btn-hud-settings').addEventListener('click',openSettings);
