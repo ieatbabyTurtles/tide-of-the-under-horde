@@ -1,5 +1,5 @@
 // Minimal offline cache for Tide of the Under-Horde (single-page game).
-var CACHE = 'tide-under-horde-v25';
+var CACHE = 'tide-under-horde-v26';
 var ASSETS = ['./index.html', './manifest.json', './icon-192.png', './icon-512.png',
   './assets/units/rat_scurrier.webp', './assets/units/rat_archer.webp', './assets/units/rat_brute.webp',
   './assets/units/porc_gladiator.webp', './assets/units/porc_warlord.webp', './assets/units/porc_quillthrower.webp',

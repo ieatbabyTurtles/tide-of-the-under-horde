@@ -152,7 +152,7 @@
       #base-hud { bottom:7px; left:7px; right:7px; font-size:6px; }
       .hp-track { width:94px; height:7px; }
       #panic-btn { bottom:7px; min-height:28px; padding:5px 11px; font-size:6px; }
-      #menu-title { font-size:21px; }.menu-crest{display:none} #menu-subtitle{margin-bottom:12px}.menu-btn{min-height:34px;padding:6px 12px;font-size:9px}.menu-btns{gap:6px}#menu-save-hint{max-width:390px;margin-top:7px;font-size:7px}
+      #menu-title { font-size:21px; }.menu-crest{display:block;width:60px;height:60px} .menu-crest img{width:60px!important;height:60px!important} #menu-subtitle{margin-bottom:12px}.menu-btn{min-height:34px;padding:6px 12px;font-size:9px}.menu-btns{gap:6px}#menu-save-hint{max-width:390px;margin-top:7px;font-size:7px}
       .modal-box { padding:12px; }.mission-grid{margin:10px 0;gap:5px}.stage-card{min-height:35px;font-size:7px}
     }
     @media (prefers-reduced-motion:reduce) { * { animation:none!important; transition:none!important; } }
@@ -1179,7 +1179,7 @@
             var rp=capturePoints[e.raidPoint],rdx=rp.x-e.x;
             if(Math.abs(rdx)>24){e.x+=Math.sign(rdx)*e.speed*dt;e.walkCycle+=dt*9;}
             else{var rdy=rp.y-e.y;if(Math.abs(rdy)>18)e.y+=Math.sign(rdy)*e.speed*0.6*dt;}
-          }else{var ahead=enemies.some(function(o){return o!==e&&o.garrison==null&&e.x-o.x>0&&e.x-o.x<18&&Math.abs(o.y-e.y)<16;});if(!ahead){e.x-=e.speed*dt;e.walkCycle+=dt*9;}}
+          }else{var ahead=enemies.some(function(o){return o!==e&&o.garrison==null&&o.raidPoint==null&&e.x-o.x>0&&e.x-o.x<18&&Math.abs(o.y-e.y)<16;});if(!ahead){e.x-=e.speed*dt;e.walkCycle+=dt*9;}}
         }
         else if(target&&e.attackCooldown<=0){e.attackCooldown=1.05;e.attackAnim=1;
           if(e.type==='quillthrower'){
