@@ -47,9 +47,7 @@
     #menu-screen::before,#menu-screen::after { content:""; position:absolute; top:0; bottom:0; width:29%; opacity:.34; pointer-events:none; }
     #menu-screen::before { left:0; background:linear-gradient(90deg,#0d2415,transparent); }
     #menu-screen::after { right:0; background:linear-gradient(-90deg,#30170f,transparent); }
-    .menu-crest { position:relative; width:78px; height:48px; margin-bottom:8px; }
-    .menu-crest::before { content:""; position:absolute; left:10px; top:11px; width:48px; height:28px; border:3px solid #cfad43; border-radius:50% 50% 46% 46%; box-shadow:0 0 20px rgba(242,202,85,.18); }
-    .menu-crest::after { content:""; position:absolute; left:18px; top:2px; width:11px; height:18px; border-left:5px solid #cfad43; border-right:5px solid #cfad43; transform:skew(-13deg); }
+    .menu-crest { position:relative; width:78px; height:78px; margin-bottom:8px; }
     #menu-title { position:relative; color:var(--gold); font-size:clamp(23px,4.3vw,36px); font-weight:900; letter-spacing:.075em; text-align:center; text-shadow:0 4px 14px #000; }
     #menu-subtitle { position:relative; margin:7px 0 22px; color:#a9ddb4; font-size:10px; font-weight:800; letter-spacing:.13em; text-align:center; }
     .menu-btns { position:relative; width:min(250px,76vw); display:grid; gap:9px; }
@@ -164,7 +162,7 @@
   <div id="rotate-prompt" role="status"><span class="turn">↻</span><div>ROTATE PHONE SIDEWAYS</div><small>The Vanguard battlefield uses a wide tactical view.</small></div>
 
   <section id="menu-screen" aria-label="Campaign menu">
-    <div class="menu-crest" aria-hidden="true"></div>
+    <div class="menu-crest" aria-hidden="true"><img src="assets/menu_rat_crest.webp" alt="" style="width:78px;height:78px;object-fit:contain;filter:drop-shadow(0 0 12px rgba(242,202,85,.25));"></div>
     <h1 id="menu-title">TIDE OF THE UNDER-HORDE</h1>
     <p id="menu-subtitle">PORCUPINE BARONY · TEN-STAGE VANGUARD CAMPAIGN</p>
     <div id="menu-gold" class="gold-badge">🪙 <span id="menu-gold-val">0</span> GOLD</div>
@@ -1259,185 +1257,45 @@
       }
     }
     function drawRatBurrowBastion(x,y){
-      // Ground shadow
-      ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(x,y+48,104,24,0,0,Math.PI*2);ctx.fill();
-      // Stone foundation with block seams and moss
-      ctx.fillStyle='#71717a';ctx.fillRect(x-86,y+12,172,32);
-      ctx.fillStyle='rgba(255,255,255,.12)';ctx.fillRect(x-86,y+12,172,4);
-      ctx.strokeStyle='#54555c';ctx.lineWidth=2;
-      for(let bx=x-86;bx<=x+86;bx+=28){ctx.beginPath();ctx.moveTo(bx,y+12);ctx.lineTo(bx,y+44);ctx.stroke();}
-      ctx.beginPath();ctx.moveTo(x-86,y+28);ctx.lineTo(x+86,y+28);ctx.stroke();
-      ctx.fillStyle='rgba(74,140,90,.45)';
-      for(let mx=x-80;mx<x+80;mx+=30){ctx.beginPath();ctx.ellipse(mx+((mx*7)%11),y+39,7,3,0,0,Math.PI*2);ctx.fill();}
-      // Great burrow mound
-      const mg=ctx.createLinearGradient(0,y-70,0,y+14);
-      mg.addColorStop(0,'#7a4f2e');mg.addColorStop(0.6,'#5a3a20');mg.addColorStop(1,'#38220f');
-      ctx.fillStyle=mg;ctx.beginPath();ctx.ellipse(x-6,y-14,78,56,0,0,Math.PI*2);ctx.fill();
-      // Dirt texture
-      ctx.lineWidth=2;
-      for(let di=0;di<16;di++){
-        const h1=Math.abs(Math.sin(di*12.9898+4.2)*43758.5453)%1,h2=Math.abs(Math.sin(di*78.233+1.1)*12543.1234)%1;
-        const ang=h1*Math.PI*2,rr=0.45+h2*0.45;
-        const dx=x-6+Math.cos(ang)*78*rr,dy=y-14+Math.sin(ang)*56*rr;
-        ctx.strokeStyle=h2>0.5?'rgba(0,0,0,0.25)':'rgba(200,160,110,0.16)';
-        ctx.beginPath();ctx.moveTo(dx,dy);ctx.lineTo(dx-4+(h1-0.5)*4,dy+3);ctx.stroke();
+      var img=SPRITES.rat_warren;
+      if(img&&img.complete&&img.naturalWidth){
+        var tw=240,th=tw*img.naturalHeight/img.naturalWidth;
+        ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(x,y+48,104,24,0,0,Math.PI*2);ctx.fill();
+        ctx.drawImage(img,x-tw/2,y-th+48,tw,th);
+      }else{
+        // Fallback: simple mound
+        ctx.fillStyle='#5a3a20';ctx.beginPath();ctx.ellipse(x,y-14,78,56,0,0,Math.PI*2);ctx.fill();
       }
-      // Exposed roots
-      ctx.strokeStyle='#452a16';ctx.lineCap='round';
-      [[-56,-40,-32,-20],[48,-46,28,-26],[-24,-62,-4,-46]].forEach(function(r){
-        ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x+r[0],y+r[1]);ctx.quadraticCurveTo(x+r[0]+8,y+r[1]+10,x+r[2],y+r[3]);ctx.stroke();
-        ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x+r[2],y+r[3]);ctx.lineTo(x+r[2]-6,y+r[3]+8);ctx.stroke();
-      });
-      // Grass tufts on the crown
-      ctx.strokeStyle='#3f9e4d';ctx.lineWidth=2;ctx.lineCap='round';
-      for(let gi=0;gi<8;gi++){
-        const ga=Math.PI*(1.18+gi*0.088);
-        const gx=x-6+Math.cos(ga)*70,gy=y-14+Math.sin(ga)*48;
-        for(let b=-1;b<=1;b++){ctx.beginPath();ctx.moveTo(gx,gy);ctx.quadraticCurveTo(gx+b*4,gy-8,gx+b*6,gy-12-Math.abs(b)*2);ctx.stroke();}
+      // Painted crossbow turret — swivels to track enemies
+      var timg=SPRITES.turret_rat_crossbow;
+      var cxf=x+10,cyf=y-56;
+      if(timg&&timg.complete&&timg.naturalWidth){
+        var ttw=90,tth=ttw*timg.naturalHeight/timg.naturalWidth;
+        ctx.save();ctx.translate(cxf,cyf);ctx.rotate(ratAimAngle);
+        ctx.drawImage(timg,-ttw/2,-tth/2,ttw,tth);ctx.restore();
       }
-      // Tall sharpened palisade
-      for(let lx=x-80;lx<x-30;lx+=13){const lt=y-54+(Math.abs(lx*31)%5);
-        ctx.fillStyle='#6f4a2c';ctx.fillRect(lx,lt,11,y+10-lt);
-        ctx.fillStyle='#7d5732';ctx.beginPath();ctx.moveTo(lx,lt);ctx.lineTo(lx+5.5,lt-11);ctx.lineTo(lx+11,lt);ctx.closePath();ctx.fill();
-        ctx.strokeStyle='#3d2812';ctx.lineWidth=1.5;ctx.strokeRect(lx,lt,11,y+10-lt);
-      }
-      for(let lx=x+18;lx<x+70;lx+=13){const lt=y-54+(Math.abs(lx*31)%5);
-        ctx.fillStyle='#6f4a2c';ctx.fillRect(lx,lt,11,y+10-lt);
-        ctx.fillStyle='#7d5732';ctx.beginPath();ctx.moveTo(lx,lt);ctx.lineTo(lx+5.5,lt-11);ctx.lineTo(lx+11,lt);ctx.closePath();ctx.fill();
-        ctx.strokeStyle='#3d2812';ctx.lineWidth=1.5;ctx.strokeRect(lx,lt,11,y+10-lt);
-      }
-      // Porcupine-quill trophies along the palisade tops
-      ctx.lineCap='round';
-      for(let qi=0;qi<6;qi++){
-        const qx=x-72+qi*27+(qi%2)*7,qy=y-60-((qi*53)%7);
-        ctx.strokeStyle='#0d0b09';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(qx,qy);ctx.lineTo(qx+3,qy-14);ctx.stroke();
-        ctx.strokeStyle='#f3ecd9';ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(qx+2,qy-9);ctx.lineTo(qx+3,qy-14);ctx.stroke();
-      }
-      // Main gate: dark arch in a heavy timber frame
-      ctx.fillStyle='#0b0b0c';ctx.beginPath();ctx.moveTo(x-28,y+12);ctx.lineTo(x-28,y-14);ctx.quadraticCurveTo(x-8,y-34,x+12,y-14);ctx.lineTo(x+12,y+12);ctx.closePath();ctx.fill();
-      ctx.strokeStyle='#4a2f1a';ctx.lineWidth=7;ctx.lineCap='round';
-      ctx.beginPath();ctx.moveTo(x-31,y+12);ctx.lineTo(x-31,y-12);ctx.quadraticCurveTo(x-8,y-37,x+15,y-12);ctx.lineTo(x+15,y+12);ctx.stroke();
-      ctx.strokeStyle='rgba(150,110,70,.5)';ctx.lineWidth=2;
-      for(let gx=x-21;gx<=x+5;gx+=8){ctx.beginPath();ctx.moveTo(gx,y+10);ctx.lineTo(gx,y-12);ctx.stroke();}
-      ctx.fillStyle='#5d3d22';ctx.fillRect(x-37,y-40,66,10);
-      ctx.fillStyle='#3d2812';for(let nx=x-33;nx<x+25;nx+=12)ctx.fillRect(nx,y-40,4,10);
-      // Side tunnels with watching eyes
-      [[-56,-28],[50,-26]].forEach(function(t){
-        const tx=x+t[0],ty=y+t[1];
-        ctx.fillStyle='#0a0805';ctx.beginPath();ctx.ellipse(tx,ty,11,13,0,0,Math.PI*2);ctx.fill();
-        ctx.strokeStyle='#2c1a0e';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(tx,ty,11,13,0,0,Math.PI*2);ctx.stroke();
-        const eg=ctx.createRadialGradient(tx,ty-3,1,tx,ty-3,10);eg.addColorStop(0,'rgba(250,204,21,.45)');eg.addColorStop(1,'rgba(250,204,21,0)');
-        ctx.fillStyle=eg;ctx.beginPath();ctx.arc(tx,ty-3,10,0,Math.PI*2);ctx.fill();
-        ctx.fillStyle='#fbbf24';
-        ctx.beginPath();ctx.arc(tx-4,ty-4,1.8,0,Math.PI*2);ctx.fill();
-        ctx.beginPath();ctx.arc(tx+4,ty-4,1.8,0,Math.PI*2);ctx.fill();
-      });
-      // War banners
-      [[x-78],[x+66]].forEach(function(b){const bxx=b[0];
-        ctx.strokeStyle='#3d2812';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(bxx,y-88);ctx.lineTo(bxx,y+6);ctx.stroke();
-        ctx.fillStyle='#23773e';ctx.beginPath();ctx.moveTo(bxx,y-88);ctx.lineTo(bxx+36,y-78);ctx.lineTo(bxx,y-66);ctx.closePath();ctx.fill();
-        ctx.fillStyle='#e9d6a7';ctx.fillRect(bxx,y-82,7,10);
-      });
-      // Torch glows flanking the gate
-      [-42,26].forEach(function(to){const txx=x+to;
-        ctx.strokeStyle='#3d2812';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(txx,y-2);ctx.lineTo(txx,y-22);ctx.stroke();
-        const fg=ctx.createRadialGradient(txx,y-28,1,txx,y-28,13);fg.addColorStop(0,'rgba(253,224,71,.85)');fg.addColorStop(1,'rgba(253,224,71,0)');
-        ctx.fillStyle=fg;ctx.beginPath();ctx.arc(txx,y-28,13,0,Math.PI*2);ctx.fill();
-        ctx.fillStyle='#f97316';ctx.beginPath();ctx.arc(txx,y-28,3.5,0,Math.PI*2);ctx.fill();
-      });
-      // Gnawed bones at the palisade foot
-      [[x+56,y+40,0.4],[x+66,y+43,-0.3],[x+60,y+47,0.9]].forEach(function(bn){
-        ctx.save();ctx.translate(bn[0],bn[1]);ctx.rotate(bn[2]);ctx.fillStyle='#e8e0cc';
-        ctx.fillRect(-8,-2,16,4);
-        ctx.beginPath();ctx.arc(-8,0,3.2,0,Math.PI*2);ctx.fill();
-        ctx.beginPath();ctx.arc(8,0,3.2,0,Math.PI*2);ctx.fill();
-        ctx.restore();
-      });
-      // Fighting platform on the crown, under the swiveling crossbow
-      ctx.fillStyle='#4a2f1a';ctx.fillRect(x-12,y-64,8,26);ctx.fillRect(x+22,y-64,8,26);
-      ctx.fillStyle='#5d3d22';ctx.fillRect(x-18,y-64,56,12);
-      ctx.fillStyle='#7a5230';ctx.fillRect(x-18,y-64,56,4);
-      ctx.strokeStyle='#3d2812';ctx.lineWidth=2;ctx.strokeRect(x-18,y-64,56,12);
-      // Mounted crossbow — swivels to track enemies
-      const cxf = x + 10, cyf = y - 56;
-      ctx.fillStyle = '#3f3f46';
-      ctx.beginPath();
-      ctx.moveTo(cxf - 14, cyf + 22); ctx.lineTo(cxf + 14, cyf + 22); ctx.lineTo(cxf + 8, cyf + 2); ctx.lineTo(cxf - 8, cyf + 2);
-      ctx.closePath(); ctx.fill();
-      ctx.save();
-      ctx.translate(cxf, cyf);
-      ctx.rotate(ratAimAngle);
-      ctx.fillStyle = '#713f12';
-      ctx.fillRect(-6, -4, 34, 8);
-      ctx.strokeStyle = '#a8a29e'; ctx.lineWidth = 5; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(24, -14); ctx.quadraticCurveTo(30, 0, 24, 14); ctx.stroke();
-      ctx.strokeStyle = '#e7e5e4'; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(24, -14); ctx.lineTo(16, 0); ctx.lineTo(24, 14); ctx.stroke();
-      ctx.strokeStyle = '#d6d3d1'; ctx.lineWidth = 2.5;
-      ctx.beginPath(); ctx.moveTo(16, 0); ctx.lineTo(34, 0); ctx.stroke();
-      ctx.fillStyle = '#facc15';
-      ctx.beginPath(); ctx.moveTo(34, -3); ctx.lineTo(40, 0); ctx.lineTo(34, 3); ctx.closePath(); ctx.fill();
-      ctx.restore();
-      ctx.fillStyle = '#86efac'; ctx.font = 'bold 9px sans-serif';
-      ctx.fillText('SLINGER', cxf - 18, cyf - 30);
+      ctx.fillStyle='#86efac';ctx.font='bold 9px sans-serif';
+      ctx.fillText('SLINGER',cxf-18,cyf-30);
     }
-
     function drawPorcupineCitadel(x,y){
-      ctx.fillStyle='rgba(0,0,0,.3)';ctx.beginPath();ctx.ellipse(x,y+48,102,23,0,0,Math.PI*2);ctx.fill();
-      // Twin round towers behind the keep
-      [-78,78].forEach(function(to){const tx=x+to;
-        ctx.fillStyle='#7c7c84';ctx.fillRect(tx-17,y-52,34,94);
-        ctx.fillStyle='rgba(255,255,255,.1)';ctx.fillRect(tx-17,y-52,6,94);
-        ctx.strokeStyle='#5a5a61';ctx.lineWidth=2;
-        for(let by=y-52;by<y+40;by+=22){ctx.beginPath();ctx.moveTo(tx-17,by);ctx.lineTo(tx+17,by);ctx.stroke();}
-        ctx.fillStyle='#7c7c84';for(let mx=tx-17;mx<tx+15;mx+=12)ctx.fillRect(mx,y-62,9,10);
-        ctx.fillStyle='#4a3220';ctx.beginPath();ctx.moveTo(tx-23,y-60);ctx.lineTo(tx+23,y-60);ctx.lineTo(tx,y-96);ctx.closePath();ctx.fill();
-        ctx.fillStyle='rgba(255,255,255,.12)';ctx.beginPath();ctx.moveTo(tx,y-96);ctx.lineTo(tx+23,y-60);ctx.lineTo(tx+9,y-60);ctx.closePath();ctx.fill();
-        ctx.fillStyle='#ae2725';ctx.fillRect(tx-8,y-48,16,32);
-        ctx.fillStyle='#7c7c84';ctx.beginPath();ctx.moveTo(tx-8,y-16);ctx.lineTo(tx,y-24);ctx.lineTo(tx+8,y-16);ctx.closePath();ctx.fill();
-      });
-      // Main keep wall with block seams
-      ctx.fillStyle='#8d8d94';ctx.fillRect(x-64,y-28,128,70);
-      ctx.fillStyle='rgba(255,255,255,.14)';ctx.fillRect(x-64,y-28,128,5);
-      ctx.strokeStyle='#63636b';ctx.lineWidth=2;
-      for(let by=y-28;by<y+42;by+=18){ctx.beginPath();ctx.moveTo(x-64,by);ctx.lineTo(x+64,by);ctx.stroke();}
-      for(let bx2=x-64;bx2<x+64;bx2+=26){ctx.beginPath();ctx.moveTo(bx2,y-28);ctx.lineTo(bx2,y+42);ctx.stroke();}
-      // Crenellations (gap where the ballista sits)
-      ctx.fillStyle='#8d8d94';
-      for(let mx=x-64;mx<x+64;mx+=20){if(Math.abs(mx+6-(x-14))<26)continue;ctx.fillRect(mx,y-40,13,12);}
-      // Quill-spike motif along the wall top — porcupine identity
-      for(let qx=x-52;qx<=x+52;qx+=13){if(Math.abs(qx-(x-14))<24)continue;
-        ctx.fillStyle='#151312';ctx.beginPath();ctx.moveTo(qx-4,y-28);ctx.lineTo(qx+4,y-28);ctx.lineTo(qx,y-48);ctx.closePath();ctx.fill();
-        ctx.fillStyle='#f3ecd9';ctx.beginPath();ctx.moveTo(qx-1.6,y-40);ctx.lineTo(qx+1.6,y-40);ctx.lineTo(qx,y-48);ctx.closePath();ctx.fill();}
-      // Gate arch with stone trim
-      ctx.fillStyle='#0d0d0e';ctx.beginPath();ctx.moveTo(x-16,y+42);ctx.lineTo(x-16,y+16);ctx.quadraticCurveTo(x,y+2,x+16,y+16);ctx.lineTo(x+16,y+42);ctx.closePath();ctx.fill();
-      ctx.strokeStyle='#a8a29e';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x-16,y+42);ctx.lineTo(x-16,y+16);ctx.quadraticCurveTo(x,y+2,x+16,y+16);ctx.lineTo(x+16,y+42);ctx.stroke();
-      // Stone foundation and ballista mount
-      ctx.fillStyle='#63636b';ctx.fillRect(x-84,y+38,168,12);
-      ctx.fillStyle='#6e6e75';ctx.fillRect(x-32,y-36,38,12);
-      ctx.fillStyle='rgba(255,255,255,.12)';ctx.fillRect(x-32,y-36,38,3);
-      // Heavy ballista — swivels to track attackers
-      const pxf = x - 14, pyf = y - 40;
-      ctx.fillStyle = '#292524';
-      ctx.beginPath();
-      ctx.moveTo(pxf - 16, pyf + 24); ctx.lineTo(pxf + 16, pyf + 24); ctx.lineTo(pxf + 9, pyf + 2); ctx.lineTo(pxf - 9, pyf + 2);
-      ctx.closePath(); ctx.fill();
-      ctx.save();
-      ctx.translate(pxf, pyf);
-      ctx.rotate(porcAimAngle);
-      ctx.fillStyle = '#451a03';
-      ctx.fillRect(-8, -5, 40, 10);
-      ctx.strokeStyle = '#78716c'; ctx.lineWidth = 6; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(28, -17); ctx.quadraticCurveTo(36, 0, 28, 17); ctx.stroke();
-      ctx.strokeStyle = '#fef3c7'; ctx.lineWidth = 1.6;
-      ctx.beginPath(); ctx.moveTo(28, -17); ctx.lineTo(18, 0); ctx.lineTo(28, 17); ctx.stroke();
-      ctx.strokeStyle = '#e7e5e4'; ctx.lineWidth = 3.5;
-      ctx.beginPath(); ctx.moveTo(18, 0); ctx.lineTo(40, 0); ctx.stroke();
-      ctx.fillStyle = '#fde047';
-      ctx.beginPath(); ctx.moveTo(40, -4); ctx.lineTo(48, 0); ctx.lineTo(40, 4); ctx.closePath(); ctx.fill();
-      ctx.restore();
-      ctx.fillStyle = '#fde047'; ctx.font = 'bold 9px sans-serif';
-      ctx.fillText('BALLISTA', pxf - 22, pyf - 34);
+      var img=SPRITES.porc_citadel;
+      if(img&&img.complete&&img.naturalWidth){
+        var tw=260,th=tw*img.naturalHeight/img.naturalWidth;
+        ctx.fillStyle='rgba(0,0,0,.3)';ctx.beginPath();ctx.ellipse(x,y+48,102,23,0,0,Math.PI*2);ctx.fill();
+        ctx.drawImage(img,x-tw/2,y-th+48,tw,th);
+      }else{
+        ctx.fillStyle='#7c7c84';ctx.fillRect(x-40,y-52,80,100);
+      }
+      // Painted quill-shooter turret — swivels to track enemies
+      var timg=SPRITES.turret_porc_quillshooter;
+      var cxf=x-14,cyf=y-40;
+      if(timg&&timg.complete&&timg.naturalWidth){
+        var ttw=95,tth=ttw*timg.naturalHeight/timg.naturalWidth;
+        ctx.save();ctx.translate(cxf,cyf);ctx.rotate(porcAimAngle);
+        ctx.drawImage(timg,-ttw/2,-tth/2,ttw,tth);ctx.restore();
+      }
+      ctx.fillStyle='#fca5a5';ctx.font='bold 9px sans-serif';
+      ctx.fillText('BALLISTA',cxf-20,cyf-30);
     }
     function drawTurretProjectiles() {
       activeTurretShots.forEach(s => {
@@ -1472,7 +1330,9 @@
     rat_brute_l1:'assets/units/armor/rat_brute_l1.webp',rat_brute_l2:'assets/units/armor/rat_brute_l2.webp',rat_brute_l3:'assets/units/armor/rat_brute_l3.webp',
     rat_scurrier_l1_walk2:'assets/units/walk/rat_scurrier_l1_walk2.webp',rat_scurrier_l2_walk2:'assets/units/walk/rat_scurrier_l2_walk2.webp',rat_scurrier_l3_walk2:'assets/units/walk/rat_scurrier_l3_walk2.webp',
     rat_archer_l1_walk2:'assets/units/walk/rat_archer_l1_walk2.webp',rat_archer_l2_walk2:'assets/units/walk/rat_archer_l2_walk2.webp',rat_archer_l3_walk2:'assets/units/walk/rat_archer_l3_walk2.webp',
-    rat_brute_l1_walk2:'assets/units/walk/rat_brute_l1_walk2.webp',rat_brute_l2_walk2:'assets/units/walk/rat_brute_l2_walk2.webp',rat_brute_l3_walk2:'assets/units/walk/rat_brute_l3_walk2.webp'};for(var k in defs){var im=new Image();im.src=defs[k];SPRITES[k]=im;}})();
+    rat_brute_l1_walk2:'assets/units/walk/rat_brute_l1_walk2.webp',rat_brute_l2_walk2:'assets/units/walk/rat_brute_l2_walk2.webp',rat_brute_l3_walk2:'assets/units/walk/rat_brute_l3_walk2.webp',
+    rat_warren:'assets/buildings/rat_warren.webp',porc_citadel:'assets/buildings/porc_citadel.webp',
+    turret_rat_crossbow:'assets/buildings/turret_rat_crossbow.webp',turret_porc_quillshooter:'assets/buildings/turret_porc_quillshooter.webp'};for(var k in defs){var im=new Image();im.src=defs[k];SPRITES[k]=im;}})();
     function drawSpriteUnit(img,img2,x,y,targetH,flip,walkCycle,attackAnim){
       if(!img||!img.complete||!img.naturalWidth)return false;
       var use2=img2&&img2.complete&&img2.naturalWidth&&Math.sin(walkCycle||0)>0;
