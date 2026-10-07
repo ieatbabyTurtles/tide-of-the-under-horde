@@ -161,21 +161,6 @@
   </style>
 </head>
 <body>
-<div id="js-debug" style="position:fixed;top:0;left:0;right:0;background:rgba(0,0,0,0.8);color:#4ade80;padding:8px;z-index:99999;font-family:monospace;font-size:11px;"></div>
-<script>
-window.addEventListener('error',function(e){
-  document.getElementById('js-debug').innerHTML+='<div style="color:#f87171">ERROR: '+(e.message||e.error)+'</div>';
-});
-window.addEventListener('unhandledrejection',function(e){
-  document.getElementById('js-debug').innerHTML+='<div style="color:#f87171">PROMISE: '+(e.reason&&e.reason.message||e.reason)+'</div>';
-});
-setInterval(function(){
-  var d=document.getElementById('js-debug');
-  if(d&&typeof isGameRunning!=='undefined'){
-    d.innerHTML='isGameRunning='+isGameRunning+' biomass='+(typeof biomass!=='undefined'?Math.floor(biomass):'?')+' allies='+(typeof allies!=='undefined'?allies.length:'?');
-  }
-},1000);
-</script>
   <div id="rotate-prompt" role="status"><span class="turn">↻</span><div>ROTATE PHONE SIDEWAYS</div><small>The Vanguard battlefield uses a wide tactical view.</small></div>
 
   <section id="menu-screen" aria-label="Campaign menu">
@@ -947,6 +932,13 @@ setInterval(function(){
       showBanner((faction==='rats'?'CAPTURED ':'LOST ')+p.name);
     }
     function spawnPorcupineEnemy(type,forceBoss){
+      var y=HIGHWAY_Y+(Math.random()*40-20),boss=forceBoss===true,hpScale=1+(currentStage-1)*.10,dmgScale=1+(currentStage-1)*.085,e;
+      if(type==='gladiator')e={type:type,x:PORC_CASTLE_X-40,y:y,hp:85*hpScale,maxHp:85*hpScale,dmg:14*dmgScale,range:30,speed:50};
+      else if(type==='champion')e={type:type,x:PORC_CASTLE_X-40,y:y,hp:170*hpScale,maxHp:170*hpScale,dmg:22*dmgScale,range:36,speed:40};
+      else if(boss)e={type:type,isBoss:true,x:PORC_CASTLE_X-50,y:y,hp:1320,maxHp:1320,dmg:46,range:46,speed:32};
+      else e={type:type,x:PORC_CASTLE_X-50,y:y,hp:450*hpScale,maxHp:450*hpScale,dmg:32*dmgScale,range:46,speed:32};
+      e.attackCooldown=0;e.walkCycle=Math.random()*5;e.attackAnim=0;enemies.push(e);
+    }
     function updatePointPips(){
       var el=document.getElementById('point-pips');if(!el)return;el.textContent='';
       var colors={rats:'#b45309',porcs:'#b91c1c'};
@@ -955,13 +947,6 @@ setInterval(function(){
         s.style.background=colors[p.owner]||'#4b5563';
         s.title=p.name;el.appendChild(s);
       });
-    }
-      var y=HIGHWAY_Y+(Math.random()*40-20),boss=forceBoss===true,hpScale=1+(currentStage-1)*.10,dmgScale=1+(currentStage-1)*.085,e;
-      if(type==='gladiator')e={type:type,x:PORC_CASTLE_X-40,y:y,hp:85*hpScale,maxHp:85*hpScale,dmg:14*dmgScale,range:30,speed:50};
-      else if(type==='champion')e={type:type,x:PORC_CASTLE_X-40,y:y,hp:170*hpScale,maxHp:170*hpScale,dmg:22*dmgScale,range:36,speed:40};
-      else if(boss)e={type:type,isBoss:true,x:PORC_CASTLE_X-50,y:y,hp:1320,maxHp:1320,dmg:46,range:46,speed:32};
-      else e={type:type,x:PORC_CASTLE_X-50,y:y,hp:450*hpScale,maxHp:450*hpScale,dmg:32*dmgScale,range:46,speed:32};
-      e.attackCooldown=0;e.walkCycle=Math.random()*5;e.attackAnim=0;enemies.push(e);
     }
     function spawnBlood(x,y,color){for(var i=0;i<6;i++)particles.push({x:x,y:y,vx:(Math.random()-.5)*110,vy:-Math.random()*80,color:color,size:Math.random()*3+2,life:.35});}
 
