@@ -407,6 +407,21 @@
         o.start(now); o.stop(now + 0.3);
       },
 
+      _bgmGuitar(now, freq) {
+        // Clean 90s electric guitar: round triangle pluck, long soft decay
+        const o = this.ctx.createOscillator(), f = this.ctx.createBiquadFilter(), g = this.ctx.createGain();
+        o.type = 'triangle';
+        o.frequency.setValueAtTime(freq, now);
+        f.type = 'lowpass';
+        f.frequency.setValueAtTime(2600, now);
+        f.frequency.exponentialRampToValueAtTime(750, now + 0.4);
+        g.gain.setValueAtTime(0.0001, now);
+        g.gain.exponentialRampToValueAtTime(0.15, now + 0.012);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+        o.connect(f); f.connect(g); g.connect(this.bgmGainNode);
+        o.start(now); o.stop(now + 1.05);
+      },
+
       _bgmPad(now, freqs, dur) {
         freqs.forEach(fr => {
           [-4, 4].forEach(cents => {
@@ -445,28 +460,53 @@
         if (!this.ctx || !this.bgmGainNode) return;
         this._droneNodes = [];
         this.bgmGainNode.gain.setValueAtTime(this.musicEnabled ? 0.24 : 0.0, this.ctx.currentTime);
-        const bpm = 118, beat = 60 / bpm;
-        // A - F#m - D - E progression
-        const roots = [110.00, 92.50, 73.42, 82.41];
+        // 90s soft rock: Bm - G - D - A at 84 BPM, clean guitar arpeggios, brushed groove
+        const bpm = 84, beat = 60 / bpm;
+        const roots = [123.47, 98.00, 73.42, 110.00]; // B2 G2 D2 A2
         const chords = [
-          [220.00, 277.18, 329.63],
-          [184.00, 220.00, 277.18],
-          [146.83, 184.00, 220.00],
-          [164.81, 207.65, 246.94],
+          [146.83, 184.99, 246.94], // Bm
+          [196.00, 246.94, 293.66], // G
+          [146.83, 184.99, 293.66], // D
+          [220.00, 277.18, 329.63], // A
         ];
-        const lead = [440.00, 523.25, 587.33, 659.26, 587.33, 523.25, 440.00, 392.00];
+        const arps = [
+          [246.94, 293.66, 369.99, 493.88, 369.99, 293.66, 369.99, 293.66],
+          [196.00, 246.94, 293.66, 392.00, 293.66, 246.94, 293.66, 246.94],
+          [293.66, 369.99, 440.00, 587.33, 440.00, 369.99, 440.00, 369.99],
+          [220.00, 277.18, 329.63, 440.00, 329.63, 277.18, 329.63, 277.18],
+        ];
+        const leadTones = [0, 493.88, 0, 369.99]; // sparse answer phrases on bars 2 & 4
+        const playBrush = (now) => {
+          this._ensureNoise();
+          const src = this.ctx.createBufferSource();
+          src.buffer = this._noiseBuf; src.loop = true;
+          const f = this.ctx.createBiquadFilter();
+          f.type = 'bandpass'; f.frequency.value = 1800; f.Q.value = 0.8;
+          const g = this.ctx.createGain();
+          g.gain.setValueAtTime(0.09, now);
+          g.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+          src.connect(f); f.connect(g); g.connect(this.bgmGainNode);
+          src.start(now); src.stop(now + 0.16);
+        };
         let step = 0;
         this.menuTimer = setInterval(() => {
           if (!this.ctx || this.ctx.state !== 'running' || !this.musicEnabled) return;
           const now = this.ctx.currentTime;
           const s16 = step % 16;
           const bar = Math.floor(step / 16) % 4;
-          if (s16 === 0 || s16 === 8) this._bgmKick(now);
-          if (s16 === 4 || s16 === 12) this._bgmClap(now);
-          if (s16 % 2 === 0) this._bgmHat(now, 0.04);
-          if (s16 % 4 === 2) this._bgmBass(now, roots[bar], beat * 0.9);
-          if (s16 % 2 === 1) this._bgmPluck(now, lead[(s16 >> 1) % 8] * 0.5);
-          if (s16 === 0) this._bgmPad(now, chords[bar], beat * 3.6);
+          if (s16 === 0) {
+            this._bgmBass(now, 48, 0.2); // soft kick thump
+            this._bgmBass(now, roots[bar], beat * 2.8);
+            this._bgmPad(now, chords[bar], beat * 3.8);
+            if (leadTones[bar]) this._bgmGuitar(now, leadTones[bar]);
+          }
+          if (s16 === 8) {
+            this._bgmBass(now, 48, 0.2);
+            this._bgmBass(now, roots[bar] * 1.5, beat * 1.4);
+          }
+          if (s16 === 4 || s16 === 12) playBrush(now);
+          if (s16 % 2 === 0) this._bgmHat(now, 0.015);
+          if (s16 % 2 === 0) this._bgmGuitar(now, arps[bar][s16 >> 1]);
           step++;
         }, (beat / 4) * 1000);
       },
