@@ -1334,14 +1334,13 @@
       ctx.fillStyle = pbodyGrad;
       ctx.beginPath(); ctx.ellipse(0, -8 * s, 18 * s, 16 * s, 0, 0, Math.PI * 2); ctx.fill();
 
-      // Dense quills radiating all around (face wedge on the left stays open)
+      // Quills only along the back crest: from just above the head, over the top, to the top of the tail
       ctx.lineCap = 'round';
-      for (let i = 0; i < 24; i++) {
-        const a = (i / 24) * Math.PI * 2;
-        let da = Math.abs(a - Math.PI); if (da > Math.PI) da = Math.PI * 2 - da;
-        if (da < 0.55) continue;
+      const QA0 = Math.PI + 0.55, QA1 = Math.PI * 2 - 0.55;
+      for (let i = 0; i < 14; i++) {
+        const a = QA0 + (i / 13) * (QA1 - QA0);
         const wob = Math.sin(i * 12.9898) * 0.5 + 0.5;
-        const rootR = 15 * s, qLen = (24 + wob * 14 + atk * 9) * s;
+        const rootR = 15 * s, qLen = (26 + wob * 14 + atk * 9) * s;
         const rootX = Math.cos(a) * rootR, rootY = -8 * s + Math.sin(a) * rootR * 0.9;
         const tipX = Math.cos(a) * (rootR + qLen), tipY = -8 * s + Math.sin(a) * (rootR + qLen) * 0.9;
         ctx.strokeStyle = '#0d0b09'; ctx.lineWidth = 3.2 * s;
