@@ -125,7 +125,7 @@
     #tutorial-overlay {
       position: absolute; bottom: 110px; left: 50%; transform: translateX(-50%);
       background: rgba(10,20,10,0.95); border: 2px solid #facc15; border-radius: 12px;
-      padding: 14px 18px; z-index: 60; display: none; text-align: center;
+      padding: 14px 18px; z-index: 210; display: none; text-align: center;
       max-width: 86%; box-shadow: 0 6px 20px rgba(0,0,0,0.7);
     }
     #tutorial-text { font-size: 13px; font-weight: 700; color: #fef3c7; line-height: 1.4; }
@@ -270,6 +270,7 @@
     <div style="display:flex; gap:10px; justify-content:center; margin-top:10px;">
       <button class="hud-btn" id="tutorial-next">NEXT ➤</button>
       <button class="hud-btn" id="tutorial-skip" style="background:#374151; border-color:#6b7280;">SKIP</button>
+      <button class="hud-btn" id="tutorial-exit" style="background:#64241f; border-color:#b04d43;">EXIT</button>
     </div>
   </div>
   <canvas id="canvas2d" aria-label="A scrolling woodland battlefield where rat units advance on a porcupine citadel"></canvas>
@@ -676,7 +677,7 @@
     var MAP_WIDTH=2200,RIVER_X=1100,HIGHWAY_Y=260,ROAD_HALF_WIDTH=55,RAT_CASTLE_X=140,PORC_CASTLE_X=2060;
     var camX=0,autoPan=true,biomass=20,maxBiomass=50,ratBaseHp=850,maxRatBaseHp=850,porcBaseHp=900,maxPorcBaseHp=900;
     var panicAvailable=true,isGameOver=false,isGameRunning=false,currentStage=1;
-    var ratTurretCooldown=0,porcTurretCooldown=0,activeTurretShots=[],ambientArtilleryTimer=2.5,ambientArcProjectiles=[],allies=[],enemies=[],particles=[],floatingTexts=[],enemyWaveTimer=4;
+    var ratTurretCooldown=0,porcTurretCooldown=0,stageTime=0,bossSpawned=false,activeTurretShots=[],ambientArtilleryTimer=2.5,ambientArcProjectiles=[],allies=[],enemies=[],particles=[],floatingTexts=[],enemyWaveTimer=4;
     let ratAimAngle = 0, porcAimAngle = Math.PI;
     function angleLerp(a, b, t) {
       let d = (b - a) % (Math.PI * 2);
@@ -733,6 +734,12 @@
       gameState.tutorialSeen = true; syncStateToUrl();
       showTutorialStep(-1);
     });
+    document.getElementById('tutorial-exit').addEventListener('click', () => {
+      gameState.tutorialSeen = true; syncStateToUrl();
+      showTutorialStep(-1);
+      isGameRunning = false; updateHUD(); updateMenuState();
+      menuScreen.style.display = 'flex'; AudioEngine.startMenuBGM();
+    });
     function updateMenuState(){document.getElementById('btn-menu-continue').textContent=gameState.currentStage>1?'CONTINUE — STAGE '+gameState.currentStage:'START CAMPAIGN';}
     function populateMissionGrid(){
       var grid=document.getElementById('stage-grid');grid.textContent='';var max=Math.min(10,gameState.highestCleared+1);
@@ -744,7 +751,7 @@
     }
     function startGameplay(level){level=Math.max(1,Math.min(10,parseInt(level,10)||1));gameState.currentStage=level;syncStateToUrl();menuScreen.style.display='none';missionModal.style.display='none';settingsModal.style.display='none';resetModal.style.display='none';resultModal.style.display='none';howtoModal.style.display='none';setupStage(level);isGameRunning=true;AudioEngine.init();AudioEngine.startGameBGM();}
     function setupStage(lvl){
-      currentStage=lvl;allies=[];enemies=[];particles=[];floatingTexts=[];activeTurretShots=[];ambientArcProjectiles=[];biomass=20;ratBaseHp=maxRatBaseHp;maxPorcBaseHp=800+lvl*150;porcBaseHp=maxPorcBaseHp;runAutoBalanceCheck(lvl);panicAvailable=true;isGameOver=false;camX=0;enemyWaveTimer=(lvl === 1 ? 8.0 : 5.0);ratTurretCooldown=.7;porcTurretCooldown=1.1;ambientArtilleryTimer=2;
+      currentStage=lvl;allies=[];enemies=[];particles=[];floatingTexts=[];activeTurretShots=[];ambientArcProjectiles=[];biomass=20;ratBaseHp=maxRatBaseHp;maxPorcBaseHp=800+lvl*120;porcBaseHp=maxPorcBaseHp;panicAvailable=true;isGameOver=false;camX=0;stageTime=0;bossSpawned=false;enemyWaveTimer=(lvl === 1 ? 8.0 : 5.0);ratTurretCooldown=.7;porcTurretCooldown=1.1;ambientArtilleryTimer=2;
       hornTimer = 0; hornCooldown = 0; shockwaves = []; rangedShots = [];
       ratAimAngle = 0; porcAimAngle = Math.PI;
       document.getElementById('card-archer').classList.toggle('locked', !gameState.unlockedArcher);
@@ -824,82 +831,28 @@
 
     function spawnRatUnit(type){
       var roadY=HIGHWAY_Y+(Math.random()*40-20);
+      var vet=1+(currentStage-1)*0.04; // battle-hardened swarm: rats grow stronger each stage
       if(type==='scurrier'){
-        allies.push({type:type,x:RAT_CASTLE_X+40,y:roadY,hp:65,maxHp:65,dmg:14,range:28,speed:70,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
+        allies.push({type:type,x:RAT_CASTLE_X+40,y:roadY,hp:65*vet,maxHp:65*vet,dmg:14*vet,range:28,speed:70,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
       } else if (type === 'archer') {
         allies.push({
           type: 'archer',
           x: RAT_CASTLE_X + 40, y: roadY,
-          hp: 50, maxHp: 50, dmg: 12, range: 140, speed: 55,
+          hp: 50*vet, maxHp: 50*vet, dmg: 12*vet, range: 140, speed: 55,
           attackCooldown: 0, walkCycle: Math.random() * 5, attackAnim: 0
         });
       } else {
-        allies.push({type:type,x:RAT_CASTLE_X+20,y:roadY,hp:260,maxHp:260,dmg:28,range:34,speed:38,reflect:.25,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
+        allies.push({type:type,x:RAT_CASTLE_X+20,y:roadY,hp:260*vet,maxHp:260*vet,dmg:28*vet,range:34,speed:38,reflect:.25,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
       }
     }
-    function spawnPorcupineEnemy(type){
-      var y=HIGHWAY_Y+(Math.random()*40-20),boss=currentStage===10,hpScale=1+(currentStage-1)*.14,dmgScale=1+(currentStage-1)*.12,e;
+    function spawnPorcupineEnemy(type,forceBoss){
+      var y=HIGHWAY_Y+(Math.random()*40-20),boss=forceBoss===true,hpScale=1+(currentStage-1)*.10,dmgScale=1+(currentStage-1)*.085,e;
       if(type==='gladiator')e={type:type,x:PORC_CASTLE_X-40,y:y,hp:85*hpScale,maxHp:85*hpScale,dmg:14*dmgScale,range:30,speed:50};
       else if(type==='champion')e={type:type,x:PORC_CASTLE_X-40,y:y,hp:170*hpScale,maxHp:170*hpScale,dmg:22*dmgScale,range:36,speed:40};
-      else e={type:type,isBoss:boss,x:PORC_CASTLE_X-50,y:y,hp:(boss?1200:450)*hpScale,maxHp:(boss?1200:450)*hpScale,dmg:(boss?40:32)*dmgScale,range:46,speed:32};
+      else if(boss)e={type:type,isBoss:true,x:PORC_CASTLE_X-50,y:y,hp:1320,maxHp:1320,dmg:46,range:46,speed:32};
+      else e={type:type,x:PORC_CASTLE_X-50,y:y,hp:450*hpScale,maxHp:450*hpScale,dmg:32*dmgScale,range:46,speed:32};
       e.attackCooldown=0;e.walkCycle=Math.random()*5;e.attackAnim=0;enemies.push(e);
     }
-    function runAutoBalanceCheck(stageNum) {
-      let wins = 0;
-      const testRuns = 40;
-      const simDt = 0.2;
-
-      for (let r = 0; r < testRuns; r++) {
-        let simRatHp = 850;
-        let simEnemyHp = 800 + stageNum * 150;
-        let t = 0;
-        let bio = 20;
-        let pTimer = 0;
-        let eTimer = 4.0;
-        let pCount = 0;
-        let eCount = 0;
-
-        while (simRatHp > 0 && simEnemyHp > 0 && t < 120) {
-          t += simDt;
-          bio = Math.min(50, bio + simDt * 2.4);
-
-          // Player auto-spawns scurriers when affordable
-          if (bio >= 10) {
-            bio -= 10;
-            pCount += 2;
-          }
-
-          // Enemy auto-spawns
-          eTimer -= simDt;
-          if (eTimer <= 0) {
-            eTimer = Math.max(3.2, 7.0 - stageNum * 0.28);
-            eCount += 1;
-          }
-
-          // Direct simplified frontline clash math
-          if (pCount > 0 && eCount > 0) {
-            pCount -= 0.12 * simDt;
-            eCount -= 0.16 * simDt;
-          } else if (pCount > 0) {
-            simEnemyHp -= pCount * 14 * simDt;
-          } else if (eCount > 0) {
-            simRatHp -= eCount * 16 * simDt;
-          }
-        }
-        if (simEnemyHp <= 0) wins++;
-      }
-
-      const winRate = (wins / testRuns) * 100;
-      // Auto-tune dynamically to maintain a smooth 60-75% target win-rate
-      if (winRate < 50) {
-        maxPorcBaseHp *= 0.88;
-        porcBaseHp = maxPorcBaseHp;
-      } else if (winRate > 85) {
-        maxPorcBaseHp *= 1.12;
-        porcBaseHp = maxPorcBaseHp;
-      }
-    }
-
     function spawnBlood(x,y,color){for(var i=0;i<6;i++)particles.push({x:x,y:y,vx:(Math.random()-.5)*110,vy:-Math.random()*80,color:color,size:Math.random()*3+2,life:.35});}
 
     function showResult(title,copy,label,action){document.getElementById('result-title').textContent=title;document.getElementById('result-copy').textContent=copy;document.getElementById('btn-result').textContent=label;resultAction=action;resultModal.style.display='flex';}
@@ -918,20 +871,26 @@
 
     function updateSimulation(dt){
       if(isGameOver)return;
-      hornTimer = Math.max(0, hornTimer - dt); hornCooldown = Math.max(0, hornCooldown - dt);
+      hornTimer = Math.max(0, hornTimer - dt); hornCooldown = Math.max(0, hornCooldown - dt); stageTime += dt;
       biomass=Math.min(maxBiomass,biomass+dt*2.4);updateHUD();
       enemyWaveTimer-=dt;if(enemyWaveTimer<=0){
         enemyWaveTimer = Math.max(3.2, 8.2 - currentStage * 0.32);
-        const r = Math.random();
-        let pick = 'gladiator';
-        if (currentStage >= 5 && r > 0.82) pick = 'warlord';
-        else if (currentStage >= 3 && r > 0.62) pick = 'champion';
-        spawnPorcupineEnemy(pick);
+        if (currentStage === 10 && !bossSpawned && stageTime > 20) {
+          spawnPorcupineEnemy('warlord', true); bossSpawned = true; // one boss, then normal warlords
+        } else {
+          const r = Math.random();
+          const warlordCh = currentStage >= 5 ? (currentStage === 10 ? 0.08 : 0.18) : 0;
+          const champCh = currentStage >= 3 ? 0.38 : 0;
+          let pick = 'gladiator';
+          if (warlordCh > 0 && r > 1 - warlordCh) pick = 'warlord';
+          else if (champCh > 0 && r > 1 - warlordCh - champCh) pick = 'champion';
+          spawnPorcupineEnemy(pick);
+        }
       }
 
       // Active crossbow turrets: track targets, then fire traveling bolts and quills.
-      const porcDmg = 9 + currentStage * 3;
-      const porcRange = 170 + currentStage * 15;
+      const porcDmg = 9 + currentStage * 2;
+      const porcRange = 170 + currentStage * 10;
       {
         let ta = null, td = 240;
         enemies.forEach(e => { const d = e.x - RAT_CASTLE_X; if (d > 0 && d < td) { td = d; ta = e; } });
