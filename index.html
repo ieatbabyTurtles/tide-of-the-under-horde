@@ -83,6 +83,7 @@
     .modal-actions { display:flex; justify-content:center; gap:9px; margin-top:14px; }
     .modal-btn { min-width:102px; min-height:36px; padding:7px 12px; border:1px solid #65866e; border-radius:5px; background:#223a28; font-size:10px; font-weight:900; cursor:pointer; }
     .modal-btn.confirm { border-color:#b04d43; background:#64241f; }
+    .modal-btn.secondary { border-color:#7d6f46; background:#2e2a17; color:#f5dfa0; }
     .gold-badge { display:inline-block; margin:8px 0 4px; padding:6px 14px; border:1px solid #d7ba52; border-radius:14px; background:#2a2111; color:#ffd97a; font-size:11px; font-weight:900; letter-spacing:.06em; }
     #menu-gold { margin:2px 0 10px; }
     .pips { color:#ffd97a; letter-spacing:2px; font-size:11px; }
@@ -243,7 +244,7 @@
     <div class="modal-box">
       <h2 id="result-title">VICTORY</h2>
       <p id="result-copy"></p>
-      <div class="modal-actions"><button class="modal-btn" id="btn-result" type="button">CONTINUE</button></div>
+      <div class="modal-actions"><button class="modal-btn" id="btn-result" type="button">CONTINUE</button><button class="modal-btn secondary" id="btn-result-menu" type="button">MAIN MENU</button></div>
     </div>
   </section>
 
@@ -850,6 +851,7 @@
     document.getElementById('btn-pause-audio').addEventListener('click',function(){pauseModal.style.display='none';settingsReturn='pause';openSettings();});
     document.getElementById('btn-quit-menu').addEventListener('click',function(){pauseModal.style.display='none';updateHUD();updateMenuState();menuScreen.style.display='flex';AudioEngine.startMenuBGM();});
     document.getElementById('btn-result').addEventListener('click',function(){resultModal.style.display='none';if(resultAction){var action=resultAction;resultAction=null;action();}});
+    document.getElementById('btn-result-menu').addEventListener('click',function(){resultAction=null;resultModal.style.display='none';isGameRunning=false;updateHUD();updateMenuState();menuScreen.style.display='flex';AudioEngine.startMenuBGM();});
     document.getElementById('btn-cam-pan').addEventListener('click',function(){autoPan=!autoPan;this.textContent=autoPan?'CAM AUTO':'CAM FREE';this.setAttribute('aria-pressed',String(autoPan));});
 
     cardScurrier.addEventListener('pointerdown',function(e){e.stopPropagation();AudioEngine.init();if(biomass<10||!isGameRunning)return;biomass-=10;AudioEngine.playRatSummon();spawnRatUnit('scurrier');spawnRatUnit('scurrier');updateHUD();});
