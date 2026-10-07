@@ -615,6 +615,11 @@
         this._noiseBurst({ dur: 0.04, type: 'bandpass', freq: 2400, gain: 0.12 });
         this._noiseBurst({ dur: 0.06, type: 'lowpass', freq: 900, gain: 0.1, at: 0.03 });
       },
+      playQuillThrow() {
+        if (!this.sfxEnabled || !this.ctx) return;
+        this._noiseBurst({ dur: 0.09, type: 'bandpass', freq: 3200, gain: 0.1 });
+        this._noiseBurst({ dur: 0.05, type: 'highpass', freq: 5000, gain: 0.06, at: 0.02 });
+      },
 
       playNova() {
         // Cinematic surge: rising air + deep bloom
@@ -915,7 +920,7 @@
       {
         let ta = null, td = 240;
         enemies.forEach(e => { const d = e.x - RAT_CASTLE_X; if (d > 0 && d < td) { td = d; ta = e; } });
-        if (ta) ratAimAngle = angleLerp(ratAimAngle, Math.atan2((ta.y - 10) - (HIGHWAY_Y - 40), ta.x - (RAT_CASTLE_X + 10)), Math.min(1, dt * 8));
+        if (ta) ratAimAngle = angleLerp(ratAimAngle, Math.atan2((ta.y - 10) - (HIGHWAY_Y - 56), ta.x - (RAT_CASTLE_X + 10)), Math.min(1, dt * 8));
       }
       {
         let ta = null, td = porcRange;
@@ -931,7 +936,7 @@
           ratTurretCooldown = 1.6;
           AudioEngine.playTurretShot();
           const mx = (RAT_CASTLE_X + 10) + Math.cos(ratAimAngle) * 42;
-          const my = (HIGHWAY_Y - 40) + Math.sin(ratAimAngle) * 42;
+          const my = (HIGHWAY_Y - 56) + Math.sin(ratAimAngle) * 42;
           activeTurretShots.push({ x: mx, y: my, tx: closestEnemy.x, ty: closestEnemy.y - 10, target: closestEnemy, speed: 750, color: '#cbd5e1', isQuill: false, dmg: 28 });
         }
       }
@@ -1017,7 +1022,7 @@
           a.attackAnim = 1.0;
           if (a.type === 'archer') {
             rangedShots.push({ x1: a.x, y1: a.y - 14, x2: target.x, y2: target.y - 10, life: 0.14 });
-            AudioEngine.playBowShot();
+            AudioEngine.playQuillThrow();
           } else {
             AudioEngine.playEpicClash();
           }
@@ -1194,39 +1199,107 @@
       }
     }
     function drawRatBurrowBastion(x,y){
-      ctx.fillStyle='rgba(0,0,0,.3)';ctx.beginPath();ctx.ellipse(x,y+46,96,22,0,0,Math.PI*2);ctx.fill();
-      // Stone foundation with block seams
-      ctx.fillStyle='#71717a';ctx.fillRect(x-82,y+12,164,30);
-      ctx.fillStyle='rgba(255,255,255,.12)';ctx.fillRect(x-82,y+12,164,4);
+      // Ground shadow
+      ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(x,y+48,104,24,0,0,Math.PI*2);ctx.fill();
+      // Stone foundation with block seams and moss
+      ctx.fillStyle='#71717a';ctx.fillRect(x-86,y+12,172,32);
+      ctx.fillStyle='rgba(255,255,255,.12)';ctx.fillRect(x-86,y+12,172,4);
       ctx.strokeStyle='#54555c';ctx.lineWidth=2;
-      for(let bx=x-82;bx<=x+82;bx+=28){ctx.beginPath();ctx.moveTo(bx,y+12);ctx.lineTo(bx,y+42);ctx.stroke();}
-      ctx.beginPath();ctx.moveTo(x-82,y+27);ctx.lineTo(x+82,y+27);ctx.stroke();
-      // Burrow mound rising behind the palisade
-      const mg=ctx.createLinearGradient(0,y-62,0,y+14);mg.addColorStop(0,'#6b4429');mg.addColorStop(1,'#3f2716');
-      ctx.fillStyle=mg;ctx.beginPath();ctx.ellipse(x-6,y-12,70,50,0,0,Math.PI*2);ctx.fill();
-      ctx.strokeStyle='#2c1a0e';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(x-6,y-12,70,50,0,Math.PI*1.08,Math.PI*1.92);ctx.stroke();
-      ctx.strokeStyle='rgba(0,0,0,.22)';ctx.lineWidth=2.5;
-      ctx.beginPath();ctx.moveTo(x-64,y-32);ctx.quadraticCurveTo(x-6,y-24,x+52,y-32);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(x-68,y-14);ctx.quadraticCurveTo(x-6,y-6,x+56,y-14);ctx.stroke();
-      // Palisade wall with a gate gap in the middle
-      for(let lx=x-76;lx<x-28;lx+=13){const lt=y-38+(Math.abs(lx*31)%5);ctx.fillStyle='#6f4a2c';ctx.fillRect(lx,lt,11,y+8-lt);ctx.beginPath();ctx.moveTo(lx,lt);ctx.lineTo(lx+5.5,lt-9);ctx.lineTo(lx+11,lt);ctx.closePath();ctx.fill();ctx.strokeStyle='#3d2812';ctx.lineWidth=1.5;ctx.strokeRect(lx,lt,11,y+8-lt);}
-      for(let lx=x+12;lx<x+68;lx+=13){const lt=y-38+(Math.abs(lx*31)%5);ctx.fillStyle='#6f4a2c';ctx.fillRect(lx,lt,11,y+8-lt);ctx.beginPath();ctx.moveTo(lx,lt);ctx.lineTo(lx+5.5,lt-9);ctx.lineTo(lx+11,lt);ctx.closePath();ctx.fill();ctx.strokeStyle='#3d2812';ctx.lineWidth=1.5;ctx.strokeRect(lx,lt,11,y+8-lt);}
-      // Gate: dark arch with timber frame and portcullis bars
-      ctx.fillStyle='#0b0b0c';ctx.beginPath();ctx.moveTo(x-28,y+10);ctx.lineTo(x-28,y-14);ctx.quadraticCurveTo(x-8,y-32,x+12,y-14);ctx.lineTo(x+12,y+10);ctx.closePath();ctx.fill();
-      ctx.strokeStyle='#4a2f1a';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(x-28,y+10);ctx.lineTo(x-28,y-14);ctx.quadraticCurveTo(x-8,y-32,x+12,y-14);ctx.lineTo(x+12,y+10);ctx.stroke();
-      ctx.strokeStyle='rgba(150,110,70,.55)';ctx.lineWidth=2;
-      for(let gx=x-21;gx<=x+5;gx+=8){ctx.beginPath();ctx.moveTo(gx,y+8);ctx.lineTo(gx,y-12);ctx.stroke();}
-      // Timber fighting platform under the swiveling crossbow
-      ctx.fillStyle='#4a2f1a';ctx.fillRect(x-12,y-36,8,24);ctx.fillRect(x+22,y-36,8,24);
-      ctx.fillStyle='#5d3d22';ctx.fillRect(x-18,y-48,56,12);
-      ctx.fillStyle='#7a5230';ctx.fillRect(x-18,y-48,56,4);
-      ctx.strokeStyle='#3d2812';ctx.lineWidth=2;ctx.strokeRect(x-18,y-48,56,12);
-      // War banners on the palisade ends
-      [[x-70],[x+58]].forEach(function(b){const bxx=b[0];ctx.strokeStyle='#3d2812';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(bxx,y-74);ctx.lineTo(bxx,y+4);ctx.stroke();ctx.fillStyle='#23773e';ctx.beginPath();ctx.moveTo(bxx,y-74);ctx.lineTo(bxx+30,y-66);ctx.lineTo(bxx,y-56);ctx.closePath();ctx.fill();});
+      for(let bx=x-86;bx<=x+86;bx+=28){ctx.beginPath();ctx.moveTo(bx,y+12);ctx.lineTo(bx,y+44);ctx.stroke();}
+      ctx.beginPath();ctx.moveTo(x-86,y+28);ctx.lineTo(x+86,y+28);ctx.stroke();
+      ctx.fillStyle='rgba(74,140,90,.45)';
+      for(let mx=x-80;mx<x+80;mx+=30){ctx.beginPath();ctx.ellipse(mx+((mx*7)%11),y+39,7,3,0,0,Math.PI*2);ctx.fill();}
+      // Great burrow mound
+      const mg=ctx.createLinearGradient(0,y-70,0,y+14);
+      mg.addColorStop(0,'#7a4f2e');mg.addColorStop(0.6,'#5a3a20');mg.addColorStop(1,'#38220f');
+      ctx.fillStyle=mg;ctx.beginPath();ctx.ellipse(x-6,y-14,78,56,0,0,Math.PI*2);ctx.fill();
+      // Dirt texture
+      ctx.lineWidth=2;
+      for(let di=0;di<16;di++){
+        const h1=Math.abs(Math.sin(di*12.9898+4.2)*43758.5453)%1,h2=Math.abs(Math.sin(di*78.233+1.1)*12543.1234)%1;
+        const ang=h1*Math.PI*2,rr=0.45+h2*0.45;
+        const dx=x-6+Math.cos(ang)*78*rr,dy=y-14+Math.sin(ang)*56*rr;
+        ctx.strokeStyle=h2>0.5?'rgba(0,0,0,0.25)':'rgba(200,160,110,0.16)';
+        ctx.beginPath();ctx.moveTo(dx,dy);ctx.lineTo(dx-4+(h1-0.5)*4,dy+3);ctx.stroke();
+      }
+      // Exposed roots
+      ctx.strokeStyle='#452a16';ctx.lineCap='round';
+      [[-56,-40,-32,-20],[48,-46,28,-26],[-24,-62,-4,-46]].forEach(function(r){
+        ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x+r[0],y+r[1]);ctx.quadraticCurveTo(x+r[0]+8,y+r[1]+10,x+r[2],y+r[3]);ctx.stroke();
+        ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x+r[2],y+r[3]);ctx.lineTo(x+r[2]-6,y+r[3]+8);ctx.stroke();
+      });
+      // Grass tufts on the crown
+      ctx.strokeStyle='#3f9e4d';ctx.lineWidth=2;ctx.lineCap='round';
+      for(let gi=0;gi<8;gi++){
+        const ga=Math.PI*(1.18+gi*0.088);
+        const gx=x-6+Math.cos(ga)*70,gy=y-14+Math.sin(ga)*48;
+        for(let b=-1;b<=1;b++){ctx.beginPath();ctx.moveTo(gx,gy);ctx.quadraticCurveTo(gx+b*4,gy-8,gx+b*6,gy-12-Math.abs(b)*2);ctx.stroke();}
+      }
+      // Tall sharpened palisade
+      for(let lx=x-80;lx<x-30;lx+=13){const lt=y-54+(Math.abs(lx*31)%5);
+        ctx.fillStyle='#6f4a2c';ctx.fillRect(lx,lt,11,y+10-lt);
+        ctx.fillStyle='#7d5732';ctx.beginPath();ctx.moveTo(lx,lt);ctx.lineTo(lx+5.5,lt-11);ctx.lineTo(lx+11,lt);ctx.closePath();ctx.fill();
+        ctx.strokeStyle='#3d2812';ctx.lineWidth=1.5;ctx.strokeRect(lx,lt,11,y+10-lt);
+      }
+      for(let lx=x+18;lx<x+70;lx+=13){const lt=y-54+(Math.abs(lx*31)%5);
+        ctx.fillStyle='#6f4a2c';ctx.fillRect(lx,lt,11,y+10-lt);
+        ctx.fillStyle='#7d5732';ctx.beginPath();ctx.moveTo(lx,lt);ctx.lineTo(lx+5.5,lt-11);ctx.lineTo(lx+11,lt);ctx.closePath();ctx.fill();
+        ctx.strokeStyle='#3d2812';ctx.lineWidth=1.5;ctx.strokeRect(lx,lt,11,y+10-lt);
+      }
+      // Porcupine-quill trophies along the palisade tops
+      ctx.lineCap='round';
+      for(let qi=0;qi<6;qi++){
+        const qx=x-72+qi*27+(qi%2)*7,qy=y-60-((qi*53)%7);
+        ctx.strokeStyle='#0d0b09';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(qx,qy);ctx.lineTo(qx+3,qy-14);ctx.stroke();
+        ctx.strokeStyle='#f3ecd9';ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(qx+2,qy-9);ctx.lineTo(qx+3,qy-14);ctx.stroke();
+      }
+      // Main gate: dark arch in a heavy timber frame
+      ctx.fillStyle='#0b0b0c';ctx.beginPath();ctx.moveTo(x-28,y+12);ctx.lineTo(x-28,y-14);ctx.quadraticCurveTo(x-8,y-34,x+12,y-14);ctx.lineTo(x+12,y+12);ctx.closePath();ctx.fill();
+      ctx.strokeStyle='#4a2f1a';ctx.lineWidth=7;ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(x-31,y+12);ctx.lineTo(x-31,y-12);ctx.quadraticCurveTo(x-8,y-37,x+15,y-12);ctx.lineTo(x+15,y+12);ctx.stroke();
+      ctx.strokeStyle='rgba(150,110,70,.5)';ctx.lineWidth=2;
+      for(let gx=x-21;gx<=x+5;gx+=8){ctx.beginPath();ctx.moveTo(gx,y+10);ctx.lineTo(gx,y-12);ctx.stroke();}
+      ctx.fillStyle='#5d3d22';ctx.fillRect(x-37,y-40,66,10);
+      ctx.fillStyle='#3d2812';for(let nx=x-33;nx<x+25;nx+=12)ctx.fillRect(nx,y-40,4,10);
+      // Side tunnels with watching eyes
+      [[-56,-28],[50,-26]].forEach(function(t){
+        const tx=x+t[0],ty=y+t[1];
+        ctx.fillStyle='#0a0805';ctx.beginPath();ctx.ellipse(tx,ty,11,13,0,0,Math.PI*2);ctx.fill();
+        ctx.strokeStyle='#2c1a0e';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(tx,ty,11,13,0,0,Math.PI*2);ctx.stroke();
+        const eg=ctx.createRadialGradient(tx,ty-3,1,tx,ty-3,10);eg.addColorStop(0,'rgba(250,204,21,.45)');eg.addColorStop(1,'rgba(250,204,21,0)');
+        ctx.fillStyle=eg;ctx.beginPath();ctx.arc(tx,ty-3,10,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#fbbf24';
+        ctx.beginPath();ctx.arc(tx-4,ty-4,1.8,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(tx+4,ty-4,1.8,0,Math.PI*2);ctx.fill();
+      });
+      // War banners
+      [[x-78],[x+66]].forEach(function(b){const bxx=b[0];
+        ctx.strokeStyle='#3d2812';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(bxx,y-88);ctx.lineTo(bxx,y+6);ctx.stroke();
+        ctx.fillStyle='#23773e';ctx.beginPath();ctx.moveTo(bxx,y-88);ctx.lineTo(bxx+36,y-78);ctx.lineTo(bxx,y-66);ctx.closePath();ctx.fill();
+        ctx.fillStyle='#e9d6a7';ctx.fillRect(bxx,y-82,7,10);
+      });
       // Torch glows flanking the gate
-      [-34,18].forEach(function(to){const txx=x+to;ctx.strokeStyle='#3d2812';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(txx,y-4);ctx.lineTo(txx,y-22);ctx.stroke();const fg=ctx.createRadialGradient(txx,y-28,1,txx,y-28,13);fg.addColorStop(0,'rgba(253,224,71,.85)');fg.addColorStop(1,'rgba(253,224,71,0)');ctx.fillStyle=fg;ctx.beginPath();ctx.arc(txx,y-28,13,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f97316';ctx.beginPath();ctx.arc(txx,y-28,3.5,0,Math.PI*2);ctx.fill();});
+      [-42,26].forEach(function(to){const txx=x+to;
+        ctx.strokeStyle='#3d2812';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(txx,y-2);ctx.lineTo(txx,y-22);ctx.stroke();
+        const fg=ctx.createRadialGradient(txx,y-28,1,txx,y-28,13);fg.addColorStop(0,'rgba(253,224,71,.85)');fg.addColorStop(1,'rgba(253,224,71,0)');
+        ctx.fillStyle=fg;ctx.beginPath();ctx.arc(txx,y-28,13,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#f97316';ctx.beginPath();ctx.arc(txx,y-28,3.5,0,Math.PI*2);ctx.fill();
+      });
+      // Gnawed bones at the palisade foot
+      [[x+56,y+40,0.4],[x+66,y+43,-0.3],[x+60,y+47,0.9]].forEach(function(bn){
+        ctx.save();ctx.translate(bn[0],bn[1]);ctx.rotate(bn[2]);ctx.fillStyle='#e8e0cc';
+        ctx.fillRect(-8,-2,16,4);
+        ctx.beginPath();ctx.arc(-8,0,3.2,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(8,0,3.2,0,Math.PI*2);ctx.fill();
+        ctx.restore();
+      });
+      // Fighting platform on the crown, under the swiveling crossbow
+      ctx.fillStyle='#4a2f1a';ctx.fillRect(x-12,y-64,8,26);ctx.fillRect(x+22,y-64,8,26);
+      ctx.fillStyle='#5d3d22';ctx.fillRect(x-18,y-64,56,12);
+      ctx.fillStyle='#7a5230';ctx.fillRect(x-18,y-64,56,4);
+      ctx.strokeStyle='#3d2812';ctx.lineWidth=2;ctx.strokeRect(x-18,y-64,56,12);
       // Mounted crossbow — swivels to track enemies
-      const cxf = x + 10, cyf = y - 40;
+      const cxf = x + 10, cyf = y - 56;
       ctx.fillStyle = '#3f3f46';
       ctx.beginPath();
       ctx.moveTo(cxf - 14, cyf + 22); ctx.lineTo(cxf + 14, cyf + 22); ctx.lineTo(cxf + 8, cyf + 2); ctx.lineTo(cxf - 8, cyf + 2);
@@ -1248,6 +1321,7 @@
       ctx.fillStyle = '#86efac'; ctx.font = 'bold 9px sans-serif';
       ctx.fillText('SLINGER', cxf - 18, cyf - 30);
     }
+
     function drawPorcupineCitadel(x,y){
       ctx.fillStyle='rgba(0,0,0,.3)';ctx.beginPath();ctx.ellipse(x,y+48,102,23,0,0,Math.PI*2);ctx.fill();
       // Twin round towers behind the keep
@@ -1328,23 +1402,6 @@
       });
     }
     function healthBar(x,y,w,ratio,color){ctx.fillStyle='rgba(0,0,0,.78)';ctx.fillRect(x-w/2,y,w,5);ctx.fillStyle=color;ctx.fillRect(x-w/2+1,y+1,Math.max(0,(w-2)*ratio),3);}
-    function drawSword(){
-      ctx.save();
-      ctx.rotate(Math.atan2(-3,19));
-      var blade=ctx.createLinearGradient(0,-2,0,2);
-      blade.addColorStop(0,'#e8edf2');
-      blade.addColorStop(1,'#9aa5b1');
-      ctx.fillStyle=blade;
-      ctx.beginPath();
-      ctx.moveTo(5,-1.8);ctx.lineTo(16,-1.25);ctx.lineTo(19,0);ctx.lineTo(16,1.25);ctx.lineTo(5,1.8);ctx.closePath();ctx.fill();
-      ctx.strokeStyle='#66717d';ctx.lineWidth=.65;ctx.beginPath();ctx.moveTo(5.5,0);ctx.lineTo(17.4,0);ctx.stroke();
-      ctx.strokeStyle='rgba(255,255,255,.88)';ctx.lineWidth=.55;ctx.beginPath();ctx.moveTo(5.4,-1.15);ctx.lineTo(15.9,-.75);ctx.lineTo(18.1,0);ctx.stroke();
-      ctx.strokeStyle='#8a6d3b';ctx.lineWidth=2.4;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(5,-4);ctx.lineTo(5,4);ctx.stroke();
-      ctx.fillStyle='#3a2a1a';ctx.fillRect(.8,-1.35,4,2.7);
-      ctx.strokeStyle='#74573a';ctx.lineWidth=.6;for(var w=1.4;w<4.6;w+=1.1){ctx.beginPath();ctx.moveTo(w,-1.3);ctx.lineTo(w+.7,1.3);ctx.stroke();}
-      ctx.fillStyle='#9aa5b1';ctx.beginPath();ctx.arc(.5,0,1.6,0,Math.PI*2);ctx.fill();
-      ctx.restore();
-    }
     function drawWarcraftRat(u){
       ctx.save();ctx.translate(u.x,u.y);
       var brute=u.type==='brute',s=brute?1.45:1;
@@ -1412,15 +1469,32 @@
       // Whiskers
       ctx.strokeStyle='rgba(240,230,220,.65)';ctx.lineWidth=0.8;
       for(var w=0;w<3;w++){ctx.beginPath();ctx.moveTo(15*s,(-16+w*2.2)*s);ctx.lineTo((23+w*2)*s,(-18+w*3)*s);ctx.stroke();}
-      ctx.save();ctx.translate(2,-10);ctx.rotate(-u.attackAnim*1.5);if(brute){ctx.fillStyle='#71807d';ctx.fillRect(8,-18,8,34);ctx.strokeStyle='#e3b450';ctx.lineWidth=2;ctx.strokeRect(8,-18,8,34);}else if(u.type==='scurrier'){drawSword();}ctx.restore();
+      // Claw-swipe attack arcs — rats fight with tooth and claw, no manufactured weapons
+      if(u.attackAnim>0){
+        var al=u.attackAnim,sw=(1-al)*0.9;
+        ctx.save();ctx.translate(2,-10);
+        ctx.strokeStyle='rgba(255,250,240,'+(0.9*al).toFixed(2)+')';ctx.lineCap='round';
+        var slashN=brute?4:3;
+        for(var c=0;c<slashN;c++){
+          ctx.lineWidth=(brute?4.5:2.6)*s*(0.6+0.4*al);
+          var r0=(brute?16:13+c*5)*s;
+          ctx.beginPath();ctx.arc(11*s,-1*s,r0,-1.0+sw*0.5+c*0.12,0.45+sw*0.5+c*0.12);ctx.stroke();
+        }
+        ctx.restore();
+      }
       if (u.type === 'archer') {
-        ctx.strokeStyle = '#8b5a2b'; ctx.lineWidth = 2.5;
-        ctx.beginPath(); ctx.arc(11, -10, 12, -1.2, 1.2); ctx.stroke();
-        ctx.strokeStyle = '#e7e5e4'; ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(11 + Math.cos(-1.2) * 12, -10 + Math.sin(-1.2) * 12);
-        ctx.lineTo(11 + Math.cos(1.2) * 12, -10 + Math.sin(1.2) * 12);
-        ctx.stroke();
+        // Quill bundle strapped to the back — porcupine quills taken as trophies, thrown back
+        ctx.save();ctx.translate(-7*s,-19*s);ctx.rotate(-0.45);
+        ctx.fillStyle='#5d3d22';ctx.fillRect(-5,-1,10,13);
+        ctx.strokeStyle='#3d2812';ctx.lineWidth=1;ctx.strokeRect(-5,-1,10,13);
+        for(var qi=0;qi<4;qi++){
+          var qx=-6+qi*4;
+          ctx.strokeStyle='#0d0b09';ctx.lineWidth=2;ctx.lineCap='round';
+          ctx.beginPath();ctx.moveTo(qx,0);ctx.lineTo(qx-3,-15);ctx.stroke();
+          ctx.strokeStyle='#f3ecd9';ctx.lineWidth=1.3;
+          ctx.beginPath();ctx.moveTo(qx-2.1,-10.5);ctx.lineTo(qx-3,-15);ctx.stroke();
+        }
+        ctx.restore();
       }
       ctx.restore();
       const bW = u.type === 'brute' ? 36 : 24;
@@ -1559,8 +1633,14 @@
       drawTurretProjectiles();
       rangedShots.forEach(s => {
         ctx.save();
-        ctx.strokeStyle = '#d6a85c'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); ctx.stroke();
+        var t = 1 - s.life / 0.14;
+        var qx = s.x1 + (s.x2 - s.x1) * t, qy = s.y1 + (s.y2 - s.y1) * t;
+        ctx.translate(qx, qy); ctx.rotate(Math.atan2(s.y2 - s.y1, s.x2 - s.x1));
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#0d0b09'; ctx.lineWidth = 2.6;
+        ctx.beginPath(); ctx.moveTo(-9, 0); ctx.lineTo(6, 0); ctx.stroke();
+        ctx.strokeStyle = '#f3ecd9'; ctx.lineWidth = 1.7;
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(6, 0); ctx.stroke();
         ctx.restore();
       });
       shockwaves.forEach(s => {
