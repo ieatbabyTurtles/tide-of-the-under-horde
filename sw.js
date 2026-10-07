@@ -1,6 +1,9 @@
 // Minimal offline cache for Tide of the Under-Horde (single-page game).
-var CACHE = 'tide-under-horde-v17';
-var ASSETS = ['./index.html', './manifest.json', './icon-192.png', './icon-512.png'];
+var CACHE = 'tide-under-horde-v18';
+var ASSETS = ['./index.html', './manifest.json', './icon-192.png', './icon-512.png',
+  './assets/units/rat_scurrier.webp', './assets/units/rat_archer.webp', './assets/units/rat_brute.webp',
+  './assets/units/porc_gladiator.webp', './assets/units/porc_warlord.webp', './assets/units/porc_quillthrower.webp',
+  './assets/bg/meadow.jpg'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(ASSETS); }).then(function () { return self.skipWaiting(); }));
 });
