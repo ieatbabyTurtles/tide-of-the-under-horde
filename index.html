@@ -1065,10 +1065,26 @@
         drawWoodlandPine(tx, crestY, 0.85);
       }
       for (let tx = -80; tx < MAP_WIDTH + 150; tx += 130) {
-        drawWoodlandPine(tx, HIGHWAY_Y + ROAD_HALF_WIDTH + 40, 1.0);
+        drawWoodlandPine(tx, HIGHWAY_Y + ROAD_HALF_WIDTH + 75, 0.9);
       }
       for (let tx = -20; tx < MAP_WIDTH + 150; tx += 210) {
-        drawWoodlandPine(tx, height - 30, 1.15);
+        drawWoodlandPine(tx, height - 30, 1.05);
+      }
+      // Grass tufts and wildflowers dotting the southern field
+      ctx.lineCap = 'round';
+      for (let gx = -150; gx < MAP_WIDTH + 150; gx += 53) {
+        if (Math.abs(gx - RIVER_X) < 44) continue;
+        const h1 = Math.abs(Math.sin(gx * 12.9898) * 43758.5453) % 1;
+        const h2 = Math.abs(Math.sin(gx * 78.233) * 12543.1234) % 1;
+        const gy = HIGHWAY_Y + ROAD_HALF_WIDTH + 18 + h1 * Math.max(40, height - (HIGHWAY_Y + ROAD_HALF_WIDTH + 48));
+        if (gy > height - 24) continue;
+        const gh = 6 + h2 * 7;
+        ctx.strokeStyle = '#15803d'; ctx.lineWidth = 2;
+        for (let b = -1; b <= 1; b++) { ctx.beginPath(); ctx.moveTo(gx + b * 4, gy); ctx.lineTo(gx + b * 5, gy - gh); ctx.stroke(); }
+        if (h2 > 0.82) {
+          ctx.fillStyle = h2 > 0.93 ? '#fef9c3' : '#fecdd3';
+          ctx.beginPath(); ctx.arc(gx + 6, gy - gh, 2.2, 0, Math.PI * 2); ctx.fill();
+        }
       }
     }
 
@@ -1111,9 +1127,46 @@
       ctx.strokeStyle='#4c5051';ctx.lineWidth=1.5;for(var rx=0;rx<MAP_WIDTH;rx+=70){ctx.beginPath();ctx.moveTo(rx,HIGHWAY_Y-ROAD_HALF_WIDTH);ctx.lineTo(rx,HIGHWAY_Y+ROAD_HALF_WIDTH);ctx.stroke();}
       ctx.fillStyle='#846544';ctx.fillRect(RIVER_X-46,HIGHWAY_Y-ROAD_HALF_WIDTH-8,92,ROAD_HALF_WIDTH*2+16);ctx.fillStyle='#513922';for(var b=RIVER_X-42;b<RIVER_X+46;b+=14)ctx.fillRect(b,HIGHWAY_Y-ROAD_HALF_WIDTH-8,4,ROAD_HALF_WIDTH*2+16);
       ctx.strokeStyle='#d1b36b';ctx.lineWidth=3;ctx.setLineDash([8,6]);ctx.beginPath();ctx.moveTo(RIVER_X,HIGHWAY_Y-ROAD_HALF_WIDTH-8);ctx.lineTo(RIVER_X,HIGHWAY_Y+ROAD_HALF_WIDTH+8);ctx.stroke();ctx.setLineDash([]);
+      // Stone edging along the road
+      ctx.fillStyle='#545758';
+      for(let ex=-180;ex<MAP_WIDTH+180;ex+=46){
+        if(Math.abs(ex-RIVER_X)<60)continue;
+        ctx.beginPath();ctx.ellipse(ex,HIGHWAY_Y-ROAD_HALF_WIDTH+4,9,4,0,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.ellipse(ex+23,HIGHWAY_Y+ROAD_HALF_WIDTH-4,9,4,0,0,Math.PI*2);ctx.fill();
+      }
     }
     function drawRatBurrowBastion(x,y){
-      ctx.fillStyle='rgba(0,0,0,.3)';ctx.beginPath();ctx.ellipse(x,y+35,82,20,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#4a2e1e';ctx.beginPath();ctx.ellipse(x,y,75,55,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#255c32';ctx.lineWidth=5;ctx.stroke();ctx.fillStyle='#090b09';ctx.beginPath();ctx.ellipse(x+25,y,32,38,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='rgba(0,0,0,.3)';ctx.beginPath();ctx.ellipse(x,y+46,96,22,0,0,Math.PI*2);ctx.fill();
+      // Stone foundation with block seams
+      ctx.fillStyle='#71717a';ctx.fillRect(x-82,y+12,164,30);
+      ctx.fillStyle='rgba(255,255,255,.12)';ctx.fillRect(x-82,y+12,164,4);
+      ctx.strokeStyle='#54555c';ctx.lineWidth=2;
+      for(let bx=x-82;bx<=x+82;bx+=28){ctx.beginPath();ctx.moveTo(bx,y+12);ctx.lineTo(bx,y+42);ctx.stroke();}
+      ctx.beginPath();ctx.moveTo(x-82,y+27);ctx.lineTo(x+82,y+27);ctx.stroke();
+      // Burrow mound rising behind the palisade
+      const mg=ctx.createLinearGradient(0,y-62,0,y+14);mg.addColorStop(0,'#6b4429');mg.addColorStop(1,'#3f2716');
+      ctx.fillStyle=mg;ctx.beginPath();ctx.ellipse(x-6,y-12,70,50,0,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='#2c1a0e';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(x-6,y-12,70,50,0,Math.PI*1.08,Math.PI*1.92);ctx.stroke();
+      ctx.strokeStyle='rgba(0,0,0,.22)';ctx.lineWidth=2.5;
+      ctx.beginPath();ctx.moveTo(x-64,y-32);ctx.quadraticCurveTo(x-6,y-24,x+52,y-32);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(x-68,y-14);ctx.quadraticCurveTo(x-6,y-6,x+56,y-14);ctx.stroke();
+      // Palisade wall with a gate gap in the middle
+      for(let lx=x-76;lx<x-28;lx+=13){const lt=y-38+(Math.abs(lx*31)%5);ctx.fillStyle='#6f4a2c';ctx.fillRect(lx,lt,11,y+8-lt);ctx.beginPath();ctx.moveTo(lx,lt);ctx.lineTo(lx+5.5,lt-9);ctx.lineTo(lx+11,lt);ctx.closePath();ctx.fill();ctx.strokeStyle='#3d2812';ctx.lineWidth=1.5;ctx.strokeRect(lx,lt,11,y+8-lt);}
+      for(let lx=x+12;lx<x+68;lx+=13){const lt=y-38+(Math.abs(lx*31)%5);ctx.fillStyle='#6f4a2c';ctx.fillRect(lx,lt,11,y+8-lt);ctx.beginPath();ctx.moveTo(lx,lt);ctx.lineTo(lx+5.5,lt-9);ctx.lineTo(lx+11,lt);ctx.closePath();ctx.fill();ctx.strokeStyle='#3d2812';ctx.lineWidth=1.5;ctx.strokeRect(lx,lt,11,y+8-lt);}
+      // Gate: dark arch with timber frame and portcullis bars
+      ctx.fillStyle='#0b0b0c';ctx.beginPath();ctx.moveTo(x-28,y+10);ctx.lineTo(x-28,y-14);ctx.quadraticCurveTo(x-8,y-32,x+12,y-14);ctx.lineTo(x+12,y+10);ctx.closePath();ctx.fill();
+      ctx.strokeStyle='#4a2f1a';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(x-28,y+10);ctx.lineTo(x-28,y-14);ctx.quadraticCurveTo(x-8,y-32,x+12,y-14);ctx.lineTo(x+12,y+10);ctx.stroke();
+      ctx.strokeStyle='rgba(150,110,70,.55)';ctx.lineWidth=2;
+      for(let gx=x-21;gx<=x+5;gx+=8){ctx.beginPath();ctx.moveTo(gx,y+8);ctx.lineTo(gx,y-12);ctx.stroke();}
+      // Timber fighting platform under the swiveling crossbow
+      ctx.fillStyle='#4a2f1a';ctx.fillRect(x-12,y-36,8,24);ctx.fillRect(x+22,y-36,8,24);
+      ctx.fillStyle='#5d3d22';ctx.fillRect(x-18,y-48,56,12);
+      ctx.fillStyle='#7a5230';ctx.fillRect(x-18,y-48,56,4);
+      ctx.strokeStyle='#3d2812';ctx.lineWidth=2;ctx.strokeRect(x-18,y-48,56,12);
+      // War banners on the palisade ends
+      [[x-70],[x+58]].forEach(function(b){const bxx=b[0];ctx.strokeStyle='#3d2812';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(bxx,y-74);ctx.lineTo(bxx,y+4);ctx.stroke();ctx.fillStyle='#23773e';ctx.beginPath();ctx.moveTo(bxx,y-74);ctx.lineTo(bxx+30,y-66);ctx.lineTo(bxx,y-56);ctx.closePath();ctx.fill();});
+      // Torch glows flanking the gate
+      [-34,18].forEach(function(to){const txx=x+to;ctx.strokeStyle='#3d2812';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(txx,y-4);ctx.lineTo(txx,y-22);ctx.stroke();const fg=ctx.createRadialGradient(txx,y-28,1,txx,y-28,13);fg.addColorStop(0,'rgba(253,224,71,.85)');fg.addColorStop(1,'rgba(253,224,71,0)');ctx.fillStyle=fg;ctx.beginPath();ctx.arc(txx,y-28,13,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f97316';ctx.beginPath();ctx.arc(txx,y-28,3.5,0,Math.PI*2);ctx.fill();});
       // Mounted crossbow — swivels to track enemies
       const cxf = x + 10, cyf = y - 40;
       ctx.fillStyle = '#3f3f46';
@@ -1136,11 +1189,41 @@
       ctx.restore();
       ctx.fillStyle = '#86efac'; ctx.font = 'bold 9px sans-serif';
       ctx.fillText('SLINGER', cxf - 18, cyf - 30);
-      ctx.strokeStyle='#63c77c';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x-22,y-82);ctx.lineTo(x-22,y);ctx.stroke();ctx.fillStyle='#23773e';ctx.beginPath();ctx.moveTo(x-20,y-79);ctx.lineTo(x+21,y-66);ctx.lineTo(x-20,y-47);ctx.fill();
     }
     function drawPorcupineCitadel(x,y){
-      ctx.fillStyle='rgba(0,0,0,.3)';ctx.beginPath();ctx.ellipse(x,y+37,88,21,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#512910';ctx.beginPath();ctx.ellipse(x,y,80,58,0,0,Math.PI*2);ctx.fill();
-      for(var py=-45;py<=45;py+=18){ctx.fillStyle='#8b4b20';ctx.beginPath();ctx.moveTo(x-40,y+py);ctx.lineTo(x-69,y+py+6);ctx.lineTo(x-40,y+py+12);ctx.fill();}
+      ctx.fillStyle='rgba(0,0,0,.3)';ctx.beginPath();ctx.ellipse(x,y+48,102,23,0,0,Math.PI*2);ctx.fill();
+      // Twin round towers behind the keep
+      [-78,78].forEach(function(to){const tx=x+to;
+        ctx.fillStyle='#7c7c84';ctx.fillRect(tx-17,y-52,34,94);
+        ctx.fillStyle='rgba(255,255,255,.1)';ctx.fillRect(tx-17,y-52,6,94);
+        ctx.strokeStyle='#5a5a61';ctx.lineWidth=2;
+        for(let by=y-52;by<y+40;by+=22){ctx.beginPath();ctx.moveTo(tx-17,by);ctx.lineTo(tx+17,by);ctx.stroke();}
+        ctx.fillStyle='#7c7c84';for(let mx=tx-17;mx<tx+15;mx+=12)ctx.fillRect(mx,y-62,9,10);
+        ctx.fillStyle='#4a3220';ctx.beginPath();ctx.moveTo(tx-23,y-60);ctx.lineTo(tx+23,y-60);ctx.lineTo(tx,y-96);ctx.closePath();ctx.fill();
+        ctx.fillStyle='rgba(255,255,255,.12)';ctx.beginPath();ctx.moveTo(tx,y-96);ctx.lineTo(tx+23,y-60);ctx.lineTo(tx+9,y-60);ctx.closePath();ctx.fill();
+        ctx.fillStyle='#ae2725';ctx.fillRect(tx-8,y-48,16,32);
+        ctx.fillStyle='#7c7c84';ctx.beginPath();ctx.moveTo(tx-8,y-16);ctx.lineTo(tx,y-24);ctx.lineTo(tx+8,y-16);ctx.closePath();ctx.fill();
+      });
+      // Main keep wall with block seams
+      ctx.fillStyle='#8d8d94';ctx.fillRect(x-64,y-28,128,70);
+      ctx.fillStyle='rgba(255,255,255,.14)';ctx.fillRect(x-64,y-28,128,5);
+      ctx.strokeStyle='#63636b';ctx.lineWidth=2;
+      for(let by=y-28;by<y+42;by+=18){ctx.beginPath();ctx.moveTo(x-64,by);ctx.lineTo(x+64,by);ctx.stroke();}
+      for(let bx2=x-64;bx2<x+64;bx2+=26){ctx.beginPath();ctx.moveTo(bx2,y-28);ctx.lineTo(bx2,y+42);ctx.stroke();}
+      // Crenellations (gap where the ballista sits)
+      ctx.fillStyle='#8d8d94';
+      for(let mx=x-64;mx<x+64;mx+=20){if(Math.abs(mx+6-(x-14))<26)continue;ctx.fillRect(mx,y-40,13,12);}
+      // Quill-spike motif along the wall top — porcupine identity
+      for(let qx=x-52;qx<=x+52;qx+=13){if(Math.abs(qx-(x-14))<24)continue;
+        ctx.fillStyle='#151312';ctx.beginPath();ctx.moveTo(qx-4,y-28);ctx.lineTo(qx+4,y-28);ctx.lineTo(qx,y-48);ctx.closePath();ctx.fill();
+        ctx.fillStyle='#f3ecd9';ctx.beginPath();ctx.moveTo(qx-1.6,y-40);ctx.lineTo(qx+1.6,y-40);ctx.lineTo(qx,y-48);ctx.closePath();ctx.fill();}
+      // Gate arch with stone trim
+      ctx.fillStyle='#0d0d0e';ctx.beginPath();ctx.moveTo(x-16,y+42);ctx.lineTo(x-16,y+16);ctx.quadraticCurveTo(x,y+2,x+16,y+16);ctx.lineTo(x+16,y+42);ctx.closePath();ctx.fill();
+      ctx.strokeStyle='#a8a29e';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x-16,y+42);ctx.lineTo(x-16,y+16);ctx.quadraticCurveTo(x,y+2,x+16,y+16);ctx.lineTo(x+16,y+42);ctx.stroke();
+      // Stone foundation and ballista mount
+      ctx.fillStyle='#63636b';ctx.fillRect(x-84,y+38,168,12);
+      ctx.fillStyle='#6e6e75';ctx.fillRect(x-32,y-36,38,12);
+      ctx.fillStyle='rgba(255,255,255,.12)';ctx.fillRect(x-32,y-36,38,3);
       // Heavy ballista — swivels to track attackers
       const pxf = x - 14, pyf = y - 40;
       ctx.fillStyle = '#292524';
@@ -1163,7 +1246,6 @@
       ctx.restore();
       ctx.fillStyle = '#fde047'; ctx.font = 'bold 9px sans-serif';
       ctx.fillText('BALLISTA', pxf - 22, pyf - 34);
-      ctx.strokeStyle='#ef5d51';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x+22,y-86);ctx.lineTo(x+22,y);ctx.stroke();ctx.fillStyle='#ae2725';ctx.beginPath();ctx.moveTo(x+20,y-83);ctx.lineTo(x-22,y-70);ctx.lineTo(x+20,y-51);ctx.fill();
     }
     function drawTurretProjectiles() {
       activeTurretShots.forEach(s => {
@@ -1234,73 +1316,56 @@
       ctx.ellipse(0, 12 * s, 30 * s, 9 * s, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Legs
-      const step = Math.sin(e.walkCycle) * 6 * s;
-      ctx.strokeStyle = '#17100a'; ctx.lineWidth = 7 * s; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(-10 * s, 2 * s); ctx.lineTo(-12 * s, 12 * s + step * 0.4); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(8 * s, 2 * s); ctx.lineTo(10 * s, 12 * s - step * 0.4); ctx.stroke();
+      // Lunge on attack (replaces the old club swing)
+      const atk = e.attackAnim || 0;
+      ctx.translate(-atk * 12 * s, 0);
 
-      // Tall rounded beast torso
-      const bodyGrad = ctx.createLinearGradient(0, -30 * s, 0, 8 * s);
-      bodyGrad.addColorStop(0, '#3a2417');
-      bodyGrad.addColorStop(1, '#1c110a');
-      ctx.fillStyle = bodyGrad;
-      ctx.beginPath();
-      ctx.ellipse(0, -10 * s, 17 * s, 17 * s, 0, 0, Math.PI * 2);
-      ctx.fill();
+      // Small dark feet
+      const wstep = Math.sin(e.walkCycle) * 5 * s;
+      ctx.fillStyle = '#17100a';
+      ctx.beginPath(); ctx.ellipse(-9 * s, 8 * s + wstep * 0.3, 6 * s, 4 * s, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(9 * s, 8 * s - wstep * 0.3, 6 * s, 4 * s, 0, 0, Math.PI * 2); ctx.fill();
 
-      // Dramatic quill crown fanning upward and swept back
+      // Chubby body
+      const pbodyGrad = ctx.createLinearGradient(0, -26 * s, 0, 10 * s);
+      pbodyGrad.addColorStop(0, '#3b2618');
+      pbodyGrad.addColorStop(1, '#191008');
+      ctx.fillStyle = pbodyGrad;
+      ctx.beginPath(); ctx.ellipse(0, -8 * s, 18 * s, 16 * s, 0, 0, Math.PI * 2); ctx.fill();
+
+      // Dense quills radiating all around (face wedge on the left stays open)
       ctx.lineCap = 'round';
-      for (let i = 0; i < 12; i++) {
-        const t = i / 11;
-        const rootX = (-12 + t * 26) * s;
-        const rootY = (-20 - Math.sin(t * Math.PI) * 6) * s;
-        const qLen = (30 + Math.sin(t * Math.PI) * 14) * s;
-        const ang = -Math.PI * 0.5 + (t - 0.5) * 1.1;
-        const tipX = rootX + Math.cos(ang) * qLen;
-        const tipY = rootY + Math.sin(ang) * qLen;
-        ctx.strokeStyle = '#f5f0dc'; ctx.lineWidth = 3.4 * s;
+      for (let i = 0; i < 24; i++) {
+        const a = (i / 24) * Math.PI * 2;
+        let da = Math.abs(a - Math.PI); if (da > Math.PI) da = Math.PI * 2 - da;
+        if (da < 0.55) continue;
+        const wob = Math.sin(i * 12.9898) * 0.5 + 0.5;
+        const rootR = 15 * s, qLen = (24 + wob * 14 + atk * 9) * s;
+        const rootX = Math.cos(a) * rootR, rootY = -8 * s + Math.sin(a) * rootR * 0.9;
+        const tipX = Math.cos(a) * (rootR + qLen), tipY = -8 * s + Math.sin(a) * (rootR + qLen) * 0.9;
+        ctx.strokeStyle = '#0d0b09'; ctx.lineWidth = 3.2 * s;
         ctx.beginPath(); ctx.moveTo(rootX, rootY); ctx.lineTo(tipX, tipY); ctx.stroke();
-        ctx.strokeStyle = '#0a0a0a'; ctx.lineWidth = 2.2 * s;
+        ctx.strokeStyle = '#f3ecd9'; ctx.lineWidth = 2.1 * s;
         ctx.beginPath();
-        ctx.moveTo(rootX + (tipX - rootX) * 0.72, rootY + (tipY - rootY) * 0.72);
-        ctx.lineTo(tipX, tipY);
-        ctx.stroke();
+        ctx.moveTo(rootX + (tipX - rootX) * 0.68, rootY + (tipY - rootY) * 0.68);
+        ctx.lineTo(tipX, tipY); ctx.stroke();
       }
 
-      // Raised head facing left
-      ctx.fillStyle = '#241610';
-      ctx.beginPath();
-      ctx.ellipse(-16 * s, -16 * s, 9 * s, 8 * s, -0.3, 0, Math.PI * 2);
-      ctx.fill();
-      // Snout
-      ctx.fillStyle = '#160d08';
-      ctx.beginPath();
-      ctx.moveTo(-22 * s, -20 * s); ctx.lineTo(-32 * s, -14 * s); ctx.lineTo(-22 * s, -10 * s);
-      ctx.closePath(); ctx.fill();
-      // Nose and glowing amber eye with pupil
-      ctx.fillStyle = '#000000';
-      ctx.beginPath(); ctx.arc(-30 * s, -14 * s, 2.4 * s, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#fbbf24';
-      ctx.beginPath(); ctx.arc(-17 * s, -18 * s, 2.6 * s, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#000000';
-      ctx.beginPath(); ctx.arc(-17 * s, -18 * s, 1.1 * s, 0, Math.PI * 2); ctx.fill();
-
-      // Spiked club arm
-      ctx.save();
-      ctx.translate(10 * s, -8 * s);
-      ctx.rotate(e.attackAnim * 1.5);
-      ctx.fillStyle = '#4a2c12';
-      ctx.fillRect(-2.5 * s, -16 * s, 5 * s, 20 * s);
-      ctx.fillStyle = '#e7dcc0';
-      for (let k = -1; k <= 1; k++) {
-        ctx.beginPath();
-        ctx.moveTo((k * 4 - 2) * s, -16 * s);
-        ctx.lineTo((k * 4) * s, -22 * s);
-        ctx.lineTo((k * 4 + 2) * s, -16 * s);
-        ctx.closePath(); ctx.fill();
-      }
-      ctx.restore();
+      // Cream face, smooth and quill-free
+      ctx.fillStyle = '#f1e8d2';
+      ctx.beginPath(); ctx.ellipse(-15 * s, -9 * s, 10.5 * s, 9 * s, -0.25, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(190,170,140,0.45)';
+      ctx.beginPath(); ctx.ellipse(-13 * s, -5.5 * s, 7 * s, 5 * s, -0.25, 0, Math.PI * 2); ctx.fill();
+      // Black nose
+      ctx.fillStyle = '#0a0a0a';
+      ctx.beginPath(); ctx.arc(-24 * s, -8 * s, 2.7 * s, 0, Math.PI * 2); ctx.fill();
+      // Dark eye with glint and a fierce brow
+      ctx.fillStyle = '#14100c';
+      ctx.beginPath(); ctx.arc(-14 * s, -12 * s, 3 * s, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.arc(-13 * s, -13 * s, 1 * s, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#2a1e12'; ctx.lineWidth = 2 * s; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-19.5 * s, -17.5 * s); ctx.lineTo(-8.5 * s, -15.5 * s); ctx.stroke();
 
       ctx.restore();
 
