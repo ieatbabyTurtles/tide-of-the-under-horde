@@ -161,14 +161,6 @@
   </style>
 </head>
 <body>
-<div id="js-error" style="display:none;position:fixed;top:0;left:0;right:0;background:#dc2626;color:white;padding:10px;z-index:99999;font-family:monospace;font-size:12px;white-space:pre-wrap;"></div>
-<script>
-window.addEventListener('error',function(e){
-  var d=document.getElementById('js-error');
-  d.style.display='block';
-  d.textContent='JS ERROR: '+(e.message||e.error)+' @ '+(e.filename||'')+':'+(e.lineno||'');
-});
-</script>
   <div id="rotate-prompt" role="status"><span class="turn">↻</span><div>ROTATE PHONE SIDEWAYS</div><small>The Vanguard battlefield uses a wide tactical view.</small></div>
 
   <section id="menu-screen" aria-label="Campaign menu">
