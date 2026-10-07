@@ -1242,11 +1242,13 @@
       });
     }
     function drawStoneHighwayAndRiver(time){
-      var river=ctx.createLinearGradient(RIVER_X-34,0,RIVER_X+34,0);river.addColorStop(0,'#176990');river.addColorStop(.5,'#58c6dc');river.addColorStop(1,'#176990');ctx.fillStyle=river;ctx.fillRect(RIVER_X-34,0,68,height);
-      ctx.strokeStyle='rgba(255,255,255,.38)';ctx.lineWidth=2;for(var y=20;y<height;y+=31){var sw=Math.sin(time*2+y)*6;ctx.beginPath();ctx.moveTo(RIVER_X-24+sw,y);ctx.lineTo(RIVER_X+24+sw,y);ctx.stroke();}
+      ctx.save();ctx.globalAlpha=0.55;
+      var river=ctx.createLinearGradient(RIVER_X-20,0,RIVER_X+20,0);river.addColorStop(0,'#2a6b7a');river.addColorStop(.5,'#6fa8b8');river.addColorStop(1,'#2a6b7a');ctx.fillStyle=river;ctx.fillRect(RIVER_X-20,0,40,height);
+      ctx.strokeStyle='rgba(255,255,255,.25)';ctx.lineWidth=1.5;for(var y=20;y<height;y+=31){var sw=Math.sin(time*2+y)*6;ctx.beginPath();ctx.moveTo(RIVER_X-14+sw,y);ctx.lineTo(RIVER_X+14+sw,y);ctx.stroke();}
+      ctx.restore();
       ctx.fillStyle='#6b6f70';ctx.fillRect(-200,HIGHWAY_Y-ROAD_HALF_WIDTH,MAP_WIDTH+400,ROAD_HALF_WIDTH*2);ctx.fillStyle='rgba(255,255,255,.1)';ctx.fillRect(-200,HIGHWAY_Y-ROAD_HALF_WIDTH+6,MAP_WIDTH+400,5);
       ctx.strokeStyle='#4c5051';ctx.lineWidth=1.5;for(var rx=0;rx<MAP_WIDTH;rx+=70){ctx.beginPath();ctx.moveTo(rx,HIGHWAY_Y-ROAD_HALF_WIDTH);ctx.lineTo(rx,HIGHWAY_Y+ROAD_HALF_WIDTH);ctx.stroke();}
-      ctx.fillStyle='#846544';ctx.fillRect(RIVER_X-46,HIGHWAY_Y-ROAD_HALF_WIDTH-8,92,ROAD_HALF_WIDTH*2+16);ctx.fillStyle='#513922';for(var b=RIVER_X-42;b<RIVER_X+46;b+=14)ctx.fillRect(b,HIGHWAY_Y-ROAD_HALF_WIDTH-8,4,ROAD_HALF_WIDTH*2+16);
+      ctx.fillStyle='#846544';ctx.fillRect(RIVER_X-32,HIGHWAY_Y-ROAD_HALF_WIDTH-8,64,ROAD_HALF_WIDTH*2+16);ctx.fillStyle='#513922';for(var b=RIVER_X-28;b<RIVER_X+32;b+=14)ctx.fillRect(b,HIGHWAY_Y-ROAD_HALF_WIDTH-8,4,ROAD_HALF_WIDTH*2+16);
       ctx.strokeStyle='#d1b36b';ctx.lineWidth=3;ctx.setLineDash([8,6]);ctx.beginPath();ctx.moveTo(RIVER_X,HIGHWAY_Y-ROAD_HALF_WIDTH-8);ctx.lineTo(RIVER_X,HIGHWAY_Y+ROAD_HALF_WIDTH+8);ctx.stroke();ctx.setLineDash([]);
       // Stone edging along the road
       ctx.fillStyle='#545758';
