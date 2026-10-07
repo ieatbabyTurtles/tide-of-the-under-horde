@@ -66,7 +66,7 @@
     #save-toast { position:absolute; z-index:320; top:max(14px,env(safe-area-inset-top)); left:50%; padding:9px 16px; transform:translate(-50%,-12px); opacity:0; border:1px solid #d7ba52; border-radius:5px; background:#173521; color:#fff1ae; box-shadow:0 7px 20px rgba(0,0,0,.6); font-size:10px; font-weight:900; letter-spacing:.035em; pointer-events:none; transition:opacity .18s,transform .18s; }
     #save-toast.show { opacity:1; transform:translate(-50%,0); }
 
-    #mission-modal,#settings-modal,#reset-modal,#result-modal,#pause-modal {
+    #mission-modal,#settings-modal,#reset-modal,#result-modal,#pause-modal,#howto-modal {
       position:absolute; inset:0; z-index:260; display:none; align-items:center; justify-content:center; padding:14px; background:rgba(3,9,5,.88);
     }
     .modal-box { width:min(540px,94vw); padding:18px; border:1px solid #c2a647; border-radius:8px; background:linear-gradient(155deg,#193522,#0e1d13); box-shadow:0 18px 50px #000; text-align:center; }
@@ -166,6 +166,17 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign lives in this link — re-add your home-screen shortcut from this page to keep your progress.</p>
+  </section>
+
+  <section id="howto-modal" role="dialog" aria-modal="true" aria-labelledby="howto-title">
+    <div class="modal-box">
+      <h2 id="howto-title">HOW TO PLAY</h2>
+      <p>Play the guided tutorial in Stage 1, or just read the quick tips here?</p>
+      <div class="modal-actions">
+        <button class="modal-btn" id="btn-howto-tutorial" type="button">PLAY TUTORIAL</button>
+        <button class="modal-btn" id="btn-howto-tips" type="button">READ TIPS</button>
+      </div>
+    </div>
   </section>
 
   <section id="mission-modal" role="dialog" aria-modal="true" aria-labelledby="mission-title">
@@ -679,7 +690,7 @@
     var bannerTimer=0,resultAction=null;
     var stageNames=['OUTSKIRT BRIARS','TIMBER POST','THORN CORRIDOR','SPIKED RUNWAY','BRAMBLE REDOUBT','THE QUILLERIES','IRON PALISADE','HIGH SHIELD BASTION',"SOVEREIGN'S GATE",'CITADEL OF THORN-QUILL'];
 
-    var menuScreen=document.getElementById('menu-screen'),missionModal=document.getElementById('mission-modal'),settingsModal=document.getElementById('settings-modal'),resetModal=document.getElementById('reset-modal'),resultModal=document.getElementById('result-modal'),pauseModal=document.getElementById('pause-modal');
+    var menuScreen=document.getElementById('menu-screen'),missionModal=document.getElementById('mission-modal'),settingsModal=document.getElementById('settings-modal'),resetModal=document.getElementById('reset-modal'),resultModal=document.getElementById('result-modal'),pauseModal=document.getElementById('pause-modal'),howtoModal=document.getElementById('howto-modal');
     var settingsReturn=null;
     var cardScurrier=document.getElementById('card-scurrier'),cardBrute=document.getElementById('card-brute'),cardArcher=document.getElementById('card-archer'),panicBtn=document.getElementById('panic-btn');
     var toggleMusic=document.getElementById('toggle-music'),toggleSfx=document.getElementById('toggle-sfx');
@@ -731,7 +742,7 @@
         if(stage<=max)btn.addEventListener('click',function(){missionModal.style.display='none';startGameplay(stage);});grid.appendChild(btn);
       })(s);
     }
-    function startGameplay(level){level=Math.max(1,Math.min(10,parseInt(level,10)||1));gameState.currentStage=level;syncStateToUrl();menuScreen.style.display='none';missionModal.style.display='none';settingsModal.style.display='none';resetModal.style.display='none';resultModal.style.display='none';setupStage(level);isGameRunning=true;AudioEngine.init();AudioEngine.startGameBGM();}
+    function startGameplay(level){level=Math.max(1,Math.min(10,parseInt(level,10)||1));gameState.currentStage=level;syncStateToUrl();menuScreen.style.display='none';missionModal.style.display='none';settingsModal.style.display='none';resetModal.style.display='none';resultModal.style.display='none';howtoModal.style.display='none';setupStage(level);isGameRunning=true;AudioEngine.init();AudioEngine.startGameBGM();}
     function setupStage(lvl){
       currentStage=lvl;allies=[];enemies=[];particles=[];floatingTexts=[];activeTurretShots=[];ambientArcProjectiles=[];biomass=20;ratBaseHp=maxRatBaseHp;maxPorcBaseHp=800+lvl*150;porcBaseHp=maxPorcBaseHp;runAutoBalanceCheck(lvl);panicAvailable=true;isGameOver=false;camX=0;enemyWaveTimer=(lvl === 1 ? 8.0 : 5.0);ratTurretCooldown=.7;porcTurretCooldown=1.1;ambientArtilleryTimer=2;
       hornTimer = 0; hornCooldown = 0; shockwaves = []; rangedShots = [];
@@ -764,7 +775,9 @@
     function setToggleState(button,enabled){button.textContent=enabled?'ON':'OFF';button.classList.toggle('off',!enabled);button.setAttribute('aria-pressed',String(enabled));}
     document.getElementById('btn-menu-continue').addEventListener('click',function(){startGameplay(gameState.currentStage);});
     document.getElementById('btn-menu-select').addEventListener('click',function(){AudioEngine.init();populateMissionGrid();missionModal.style.display='flex';});
-    document.getElementById('btn-menu-howto').addEventListener('click',function(){AudioEngine.init();showTutorialStep(0);});
+    document.getElementById('btn-menu-howto').addEventListener('click',function(){AudioEngine.init();howtoModal.style.display='flex';});
+    document.getElementById('btn-howto-tutorial').addEventListener('click',function(){howtoModal.style.display='none';startGameplay(1);showTutorialStep(0);});
+    document.getElementById('btn-howto-tips').addEventListener('click',function(){howtoModal.style.display='none';showTutorialStep(0);});
     document.getElementById('btn-close-mission').addEventListener('click',function(){missionModal.style.display='none';});
     document.getElementById('btn-menu-settings').addEventListener('click',openSettings);
     document.getElementById('btn-hud-settings').addEventListener('click',openSettings);
