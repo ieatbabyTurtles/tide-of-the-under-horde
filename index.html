@@ -90,6 +90,8 @@
     .pips .off { color:#5a5347; }
     .buy-btn { min-width:84px; min-height:31px; padding:5px 10px; border:1px solid #d7ba52; border-radius:4px; background:#6b5313; color:#ffedb0; font-size:9px; font-weight:900; cursor:pointer; }
     .buy-btn:disabled { border-color:#5a5347; background:#2c2c2c; color:#8a8a8a; cursor:not-allowed; }
+    #point-pips { display:inline-flex; gap:5px; align-items:center; padding:3px 0; }
+    .point-pip { width:11px; height:11px; border-radius:50%; border:1px solid rgba(255,255,255,.5); display:inline-block; }
 
     #top-hud { position:absolute; z-index:20; top:max(9px,env(safe-area-inset-top)); left:12px; right:12px; display:flex; justify-content:space-between; align-items:flex-start; pointer-events:none; }
     .hud-left,#hud-btns { display:flex; gap:7px; pointer-events:auto; }
@@ -252,6 +254,7 @@
     <div class="hud-left">
       <div class="hud-stat"><span class="stat-label">BIOMASS</span><span class="stat-val" id="bio-val">20/50</span></div>
       <div class="hud-stat"><span class="stat-label">MISSION</span><span class="stat-val" id="mission-badge">1/10</span></div>
+      <div class="hud-stat"><span class="stat-label">POINTS</span><span id="point-pips"></span></div>
     </div>
     <div id="hud-btns">
       <button class="hud-btn" id="btn-hud-settings" type="button" aria-label="Open audio settings">⚙</button>
@@ -703,7 +706,9 @@
     var MAP_WIDTH=2200,RIVER_X=1100,HIGHWAY_Y=260,ROAD_HALF_WIDTH=55,RAT_CASTLE_X=140,PORC_CASTLE_X=2060;
     var camX=0,autoPan=true,biomass=20,maxBiomass=50,ratBaseHp=850,maxRatBaseHp=850,porcBaseHp=900,maxPorcBaseHp=900;
     var panicAvailable=true,isGameOver=false,isGameRunning=false,currentStage=1;
-    var ratTurretCooldown=0,porcTurretCooldown=0,stageTime=0,bossSpawned=false,activeTurretShots=[],ambientArtilleryTimer=2.5,ambientArcProjectiles=[],allies=[],enemies=[],particles=[],floatingTexts=[],enemyWaveTimer=4;
+    var ratTurretCooldown=0,porcTurretCooldown=0,stageTime=0,bossSpawned=false,raidTimer=22,activeTurretShots=[],ambientArtilleryTimer=2.5,ambientArcProjectiles=[],allies=[],enemies=[],particles=[],floatingTexts=[],enemyWaveTimer=4;
+    var capturePoints=[];
+    var POINT_R=80,POINT_CAPTURE_TIME=5;
     let ratAimAngle = 0, porcAimAngle = Math.PI;
     function angleLerp(a, b, t) {
       let d = (b - a) % (Math.PI * 2);
@@ -737,6 +742,7 @@
       "👆 Tap SWARM (x2) to deploy rat pairs — they cost 10 biomass.",
       "🏹 Your mounted crossbow defends the warren on its own. Push forward!",
       "📯 Tap WAR HORN to empower your swarm: +50% speed and damage for 8s.",
+      "⭕ Hold the stone circles for bonus biomass — the JUDGMENT CROWN in the middle pays the most. The enemy wants them too!",
       "💀 Destroy the Porcupine Stronghold to win the stage!"
     ];
     let tutorialStep = -1;
@@ -801,7 +807,13 @@
     }
     function startGameplay(level){level=Math.max(1,Math.min(10,parseInt(level,10)||1));gameState.currentStage=level;syncStateToUrl();menuScreen.style.display='none';missionModal.style.display='none';settingsModal.style.display='none';resetModal.style.display='none';resultModal.style.display='none';howtoModal.style.display='none';upgradeModal.style.display='none';setupStage(level);isGameRunning=true;AudioEngine.init();AudioEngine.startGameBGM();}
     function setupStage(lvl){
-      currentStage=lvl;allies=[];enemies=[];particles=[];floatingTexts=[];activeTurretShots=[];ambientArcProjectiles=[];biomass=20;ratBaseHp=maxRatBaseHp;maxPorcBaseHp=800+lvl*120;porcBaseHp=maxPorcBaseHp;panicAvailable=true;isGameOver=false;camX=0;stageTime=0;bossSpawned=false;enemyWaveTimer=(lvl === 1 ? 8.0 : 5.0);ratTurretCooldown=.7;porcTurretCooldown=1.1;ambientArtilleryTimer=2;
+      currentStage=lvl;allies=[];enemies=[];particles=[];floatingTexts=[];activeTurretShots=[];ambientArcProjectiles=[];biomass=20;ratBaseHp=maxRatBaseHp;maxPorcBaseHp=800+lvl*120;porcBaseHp=maxPorcBaseHp;panicAvailable=true;isGameOver=false;camX=0;stageTime=0;bossSpawned=false;raidTimer=(lvl===1?55:45);enemyWaveTimer=(lvl === 1 ? 8.0 : 5.0);ratTurretCooldown=.7;porcTurretCooldown=1.1;ambientArtilleryTimer=2;
+      capturePoints=[
+        {x:650,y:HIGHWAY_Y,name:'WARREN POINT',owner:'rats',progress:0,progFaction:null},
+        {x:1100,y:HIGHWAY_Y,name:'JUDGMENT CROWN',owner:null,progress:0,progFaction:null},
+        {x:1550,y:HIGHWAY_Y,name:'BARONY POINT',owner:'porcs',progress:0,progFaction:null}
+      ];
+      spawnGarrison(0,'rats');spawnGarrison(2,'porcs');updatePointPips();
       hornTimer = 0; hornCooldown = 0; shockwaves = []; rangedShots = [];
       ratAimAngle = 0; porcAimAngle = Math.PI;
       document.getElementById('card-archer').classList.toggle('locked', !gameState.unlockedArcher);
@@ -900,7 +912,35 @@
         allies.push({type:type,x:RAT_CASTLE_X+20,y:roadY,hp:260*mult,maxHp:260*mult,dmg:28*mult,range:34,speed:38,reflect:.25,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
       }
     }
+    function spawnGarrison(pi,faction){
+      var p=capturePoints[pi];if(!p)return;
+      for(var i=0;i<2;i++){
+        var off=(i===0?-24:24),gy=p.y+(Math.random()*30-15);
+        if(faction==='rats'){
+          var vet=1+(currentStage-1)*0.04,upg=1+((gameState.upgrades['archer']||0)*0.08),mult=vet*upg;
+          allies.push({type:'archer',x:p.x+off,y:gy,hp:50*mult,maxHp:50*mult,dmg:12*mult,range:140,speed:55,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0,garrison:pi});
+        }else{
+          var hpScale=1+(currentStage-1)*.10,dmgScale=1+(currentStage-1)*.085;
+          enemies.push({type:'quillthrower',x:p.x+off,y:gy,hp:60*hpScale,maxHp:60*hpScale,dmg:13*dmgScale,range:135,speed:50,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0,garrison:pi});
+        }
+      }
+    }
+    function setPointOwner(pi,faction){
+      var p=capturePoints[pi];if(!p)return;
+      p.owner=faction;p.progress=0;p.progFaction=null;
+      spawnGarrison(pi,faction);updatePointPips();
+      showBanner((faction==='rats'?'CAPTURED ':'LOST ')+p.name);
+    }
     function spawnPorcupineEnemy(type,forceBoss){
+    function updatePointPips(){
+      var el=document.getElementById('point-pips');if(!el)return;el.textContent='';
+      var colors={rats:'#b45309',porcs:'#b91c1c'};
+      capturePoints.forEach(function(p){
+        var s=document.createElement('span');s.className='point-pip';
+        s.style.background=colors[p.owner]||'#4b5563';
+        s.title=p.name;el.appendChild(s);
+      });
+    }
       var y=HIGHWAY_Y+(Math.random()*40-20),boss=forceBoss===true,hpScale=1+(currentStage-1)*.10,dmgScale=1+(currentStage-1)*.085,e;
       if(type==='gladiator')e={type:type,x:PORC_CASTLE_X-40,y:y,hp:85*hpScale,maxHp:85*hpScale,dmg:14*dmgScale,range:30,speed:50};
       else if(type==='champion')e={type:type,x:PORC_CASTLE_X-40,y:y,hp:170*hpScale,maxHp:170*hpScale,dmg:22*dmgScale,range:36,speed:40};
@@ -929,7 +969,29 @@
     function updateSimulation(dt){
       if(isGameOver)return;
       hornTimer = Math.max(0, hornTimer - dt); hornCooldown = Math.max(0, hornCooldown - dt); stageTime += dt;
-      biomass=Math.min(maxBiomass,biomass+dt*2.4);updateHUD();
+      var pointIncome=0;
+      capturePoints.forEach(function(p){
+        if(p.owner==='rats')pointIncome+=(p.name==='JUDGMENT CROWN'?1.0:0.4);
+      });
+      biomass=Math.min(maxBiomass,biomass+dt*(2.4+pointIncome));updateHUD();
+      // Capture points: uncontested presence flips them
+      capturePoints.forEach(function(p,pi){
+        var rats=0,porcs=0;
+        allies.forEach(function(a){if(Math.hypot(a.x-p.x,a.y-p.y)<POINT_R)rats++;});
+        enemies.forEach(function(e){if(Math.hypot(e.x-p.x,e.y-p.y)<POINT_R)porcs++;});
+        if(rats>0&&porcs===0&&p.owner!=='rats'){
+          if(p.progFaction!=='rats'){p.progFaction='rats';p.progress=0;}
+          p.progress+=dt/POINT_CAPTURE_TIME;
+          if(p.progress>=1)setPointOwner(pi,'rats');
+        }else if(porcs>0&&rats===0&&p.owner!=='porcs'){
+          if(p.progFaction!=='porcs'){p.progFaction='porcs';p.progress=0;}
+          p.progress+=dt/POINT_CAPTURE_TIME;
+          if(p.progress>=1)setPointOwner(pi,'porcs');
+        }else{
+          p.progress=Math.max(0,p.progress-dt/POINT_CAPTURE_TIME);
+          if(p.progress===0)p.progFaction=null;
+        }
+      });
       enemyWaveTimer-=dt;if(enemyWaveTimer<=0){
         enemyWaveTimer = Math.max(3.2, 8.2 - currentStage * 0.32);
         if (currentStage === 10 && !bossSpawned && stageTime > 20) {
@@ -942,6 +1004,22 @@
           if (warlordCh > 0 && r > 1 - warlordCh) pick = 'warlord';
           else if (champCh > 0 && r > 1 - warlordCh - champCh) pick = 'champion';
           spawnPorcupineEnemy(pick);
+        }
+      }
+
+      // Porcupine raiders: squads that march on capture points instead of the warren
+      raidTimer-=dt;
+      if(raidTimer<=0){
+        raidTimer=45;
+        var raidTarget=-1;
+        if(capturePoints[1]&&capturePoints[1].owner!=='porcs')raidTarget=1;
+        else if(capturePoints[0]&&capturePoints[0].owner!=='porcs')raidTarget=0;
+        if(raidTarget>=0){
+          for(var ri=0;ri<2;ri++){
+            spawnPorcupineEnemy('gladiator');
+            enemies[enemies.length-1].raidPoint=raidTarget;
+          }
+          showBanner('PORCUPINE RAIDERS SIGHTED');
         }
       }
 
@@ -1029,19 +1107,28 @@
         let target = null;
         let minDist = a.range;
         enemies.forEach(e => {
-          const dx = e.x - a.x;
-          if (dx > 0 && dx < minDist && Math.abs(e.y - a.y) < 38) {
+          const dx = e.x - a.x, dy = e.y - a.y;
+          if (a.garrison != null) {
+            const d = Math.hypot(dx, dy);
+            if (d < minDist) { minDist = d; target = e; }
+          } else if (dx > 0 && dx < minDist && Math.abs(dy) < 38) {
             minDist = dx; target = e;
           }
         });
 
         const distToBase = PORC_CASTLE_X - a.x;
-        const targetBase = (distToBase <= a.range + 8);
+        const targetBase = (distToBase <= a.range + 8) && a.garrison == null;
 
         if (!target && !targetBase) {
           // If stuck behind an ally, shift vertically across the lane to flank forward
           const allyAhead = allies.find(o => o !== a && (o.x - a.x) > 0 && (o.x - a.x) < 22 && Math.abs(o.y - a.y) < 14);
-          if (allyAhead) {
+          if (a.garrison != null && capturePoints[a.garrison]) {
+            // Garrison: hold the point, drift back if knocked away
+            const gp = capturePoints[a.garrison];
+            const gdx = gp.x - a.x, gdy = gp.y - a.y;
+            if (Math.abs(gdx) > 16) { a.x += Math.sign(gdx) * a.speed * dt; a.walkCycle += dt * 10; }
+            if (Math.abs(gdy) > 16) { a.y += Math.sign(gdy) * a.speed * 0.6 * dt; }
+          } else if (allyAhead) {
             a.y += (a.y > HIGHWAY_Y ? -18 : 18) * dt; // Fan out into lane flanks
             a.x += a.speed * 0.45 * hm * dt;
           } else {
@@ -1079,9 +1166,29 @@
       });
       enemies.forEach(function(e){
         e.attackCooldown=Math.max(0,e.attackCooldown-dt);e.attackAnim=Math.max(0,e.attackAnim-dt*4);var target=null,min=e.range;
-        allies.forEach(function(a){var dx=e.x-a.x;if(dx>=-3&&dx<min&&Math.abs(a.y-e.y)<35){min=dx;target=a;}});var targetBase=e.x-RAT_CASTLE_X<=e.range;
-        if(!target&&!targetBase){var ahead=enemies.some(function(o){return o!==e&&e.x-o.x>0&&e.x-o.x<18&&Math.abs(o.y-e.y)<16;});if(!ahead){e.x-=e.speed*dt;e.walkCycle+=dt*9;}}
-        else if(target&&e.attackCooldown<=0){e.attackCooldown=1.05;e.attackAnim=1;target.hp-=e.dmg;AudioEngine.playEpicClash();spawnBlood(target.x,e.y-10,'#ef4444');if(target.reflect){var ref=Math.round(e.dmg*target.reflect);e.hp-=ref;floatingTexts.push({x:e.x,y:e.y-30,text:'THORNS −'+ref,color:'#f59e0b',life:.6});}}
+        allies.forEach(function(a){
+          if(e.garrison!=null){var gd=Math.hypot(e.x-a.x,e.y-a.y);if(gd<min){min=gd;target=a;}}
+          else{var dx=e.x-a.x;if(dx>=-3&&dx<min&&Math.abs(a.y-e.y)<35){min=dx;target=a;}}
+        });
+        if(e.raidPoint!=null&&capturePoints[e.raidPoint]&&capturePoints[e.raidPoint].owner==='porcs')e.raidPoint=null; // point taken, resume push
+        var targetBase=e.x-RAT_CASTLE_X<=e.range&&e.garrison==null&&e.raidPoint==null;
+        if(!target&&!targetBase){
+          if(e.garrison!=null&&capturePoints[e.garrison]){
+            var gp2=capturePoints[e.garrison],gdx2=gp2.x-e.x,gdy2=gp2.y-e.y;
+            if(Math.abs(gdx2)>16){e.x+=Math.sign(gdx2)*e.speed*dt;e.walkCycle+=dt*9;}
+            if(Math.abs(gdy2)>16){e.y+=Math.sign(gdy2)*e.speed*0.6*dt;}
+          }else if(e.raidPoint!=null&&capturePoints[e.raidPoint]){
+            var rp=capturePoints[e.raidPoint],rdx=rp.x-e.x;
+            if(Math.abs(rdx)>24){e.x+=Math.sign(rdx)*e.speed*dt;e.walkCycle+=dt*9;}
+            else{var rdy=rp.y-e.y;if(Math.abs(rdy)>18)e.y+=Math.sign(rdy)*e.speed*0.6*dt;}
+          }else{var ahead=enemies.some(function(o){return o!==e&&e.x-o.x>0&&e.x-o.x<18&&Math.abs(o.y-e.y)<16;});if(!ahead){e.x-=e.speed*dt;e.walkCycle+=dt*9;}}
+        }
+        else if(target&&e.attackCooldown<=0){e.attackCooldown=1.05;e.attackAnim=1;
+          if(e.type==='quillthrower'){
+            activeTurretShots.push({x:e.x,y:e.y-14,tx:target.x,ty:target.y-10,target:target,speed:650,color:'#fde047',isQuill:true,dmg:e.dmg});
+            AudioEngine.playQuillThrow();
+          }else{target.hp-=e.dmg;AudioEngine.playEpicClash();}
+          spawnBlood(target.x,e.y-10,'#ef4444');if(target.reflect){var ref=Math.round(e.dmg*target.reflect);e.hp-=ref;floatingTexts.push({x:e.x,y:e.y-30,text:'THORNS −'+ref,color:'#f59e0b',life:.6});}}
         else if(targetBase&&e.attackCooldown<=0){e.attackCooldown=1.05;e.attackAnim=1;ratBaseHp-=e.dmg;AudioEngine.playEpicClash();spawnBlood(RAT_CASTLE_X,e.y-15,'#22c55e');}
       });
       for(var ai=allies.length-1;ai>=0;ai--)if(allies[ai].hp<=0){AudioEngine.playRatDeath();allies.splice(ai,1);}
@@ -1546,7 +1653,7 @@
     function drawGladiatorPorcupine(e) {
       ctx.save();
       ctx.translate(e.x, e.y);
-      const s = e.isBoss ? 1.5 : e.type === 'champion' ? 1.25 : 1.05;
+      const s = e.isBoss ? 1.5 : e.type === 'champion' ? 1.25 : e.type === 'quillthrower' ? 0.95 : 1.05;
 
       // Ground shadow
       ctx.fillStyle = 'rgba(0,0,0,0.35)';
@@ -1651,6 +1758,11 @@
       ctx.beginPath(); ctx.arc(-14 * s, -12 * s, 3.6 * s, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke();
       ctx.strokeStyle = '#2a1e12'; ctx.lineWidth = 2 * s; ctx.lineCap = 'round';
       ctx.beginPath(); ctx.moveTo(-19.5 * s, -17.5 * s); ctx.lineTo(-8.5 * s, -15.5 * s); ctx.stroke();
+      // Quill-thrower mark: red war-paint band across the snout
+      if (e.type === 'quillthrower') {
+        ctx.strokeStyle = '#b91c1c'; ctx.lineWidth = 2.4 * s;
+        ctx.beginPath(); ctx.moveTo(-20 * s, -10 * s); ctx.lineTo(-9 * s, -8.5 * s); ctx.stroke();
+      }
 
       ctx.restore();
 
@@ -1661,6 +1773,35 @@
       ctx.fillStyle = '#ef4444';
       ctx.fillRect(e.x - bW / 2, e.y - 40 * s, bW * Math.max(0, e.hp / e.maxHp), 5);
     }
+    function drawCapturePoints(){
+      capturePoints.forEach(function(p){
+        var ownerColor=p.owner==='rats'?'#b45309':p.owner==='porcs'?'#b91c1c':'#6b7280';
+        ctx.save();ctx.translate(p.x,p.y);
+        ctx.fillStyle='rgba(0,0,0,0.3)';
+        ctx.beginPath();ctx.ellipse(0,6,58,20,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#3f3f46';
+        ctx.beginPath();ctx.ellipse(0,0,58,22,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#52525b';
+        ctx.beginPath();ctx.ellipse(0,0,50,18,0,0,Math.PI*2);ctx.fill();
+        ctx.globalAlpha=0.35;ctx.fillStyle=ownerColor;
+        ctx.beginPath();ctx.ellipse(0,0,50,18,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+        ctx.strokeStyle=ownerColor;ctx.lineWidth=3;
+        ctx.beginPath();ctx.ellipse(0,0,54,20,0,0,Math.PI*2);ctx.stroke();
+        ctx.strokeStyle='#3f2d1c';ctx.lineWidth=4;ctx.lineCap='round';
+        ctx.beginPath();ctx.moveTo(34,-4);ctx.lineTo(34,-52);ctx.stroke();
+        ctx.fillStyle=ownerColor;
+        ctx.beginPath();ctx.moveTo(34,-52);ctx.lineTo(60,-46);ctx.lineTo(34,-40);ctx.closePath();ctx.fill();
+        ctx.fillStyle='rgba(255,255,255,0.9)';ctx.font='900 9px system-ui,sans-serif';ctx.textAlign='center';
+        ctx.fillText(p.name,0,-60);
+        if(p.name==='JUDGMENT CROWN'){ctx.fillStyle='#facc15';ctx.font='13px system-ui,sans-serif';ctx.fillText('♛',0,-72);}
+        if(p.progress>0&&p.progFaction){
+          var pc=p.progFaction==='rats'?'#fbbf24':'#ef4444';
+          ctx.strokeStyle=pc;ctx.lineWidth=5;ctx.lineCap='round';
+          ctx.beginPath();ctx.ellipse(0,0,63,25,0,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.min(1,p.progress));ctx.stroke();
+        }
+        ctx.restore();
+      });
+    }
     // 3. Clean Main Render Pipeline (Background skirmishes permanently removed)
     function renderElevatedField(time) {
       ctx.clearRect(0, 0, width, height);
@@ -1669,6 +1810,7 @@
 
       drawSunlitMeadow();
       drawStoneHighwayAndRiver();
+      drawCapturePoints();
 
       drawRatBurrowBastion(RAT_CASTLE_X, HIGHWAY_Y);
       drawPorcupineCitadel(PORC_CASTLE_X, HIGHWAY_Y);
