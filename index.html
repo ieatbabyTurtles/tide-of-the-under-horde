@@ -1181,7 +1181,7 @@
             var rp=capturePoints[e.raidPoint],rdx=rp.x-e.x;
             if(Math.abs(rdx)>24){e.x+=Math.sign(rdx)*e.speed*dt;e.walkCycle+=dt*9;}
             else{var rdy=rp.y-e.y;if(Math.abs(rdy)>18)e.y+=Math.sign(rdy)*e.speed*0.6*dt;}
-          }else{var ahead=enemies.some(function(o){return o!==e&&e.x-o.x>0&&e.x-o.x<18&&Math.abs(o.y-e.y)<16;});if(!ahead){e.x-=e.speed*dt;e.walkCycle+=dt*9;}}
+          }else{var ahead=enemies.some(function(o){return o!==e&&o.garrison==null&&e.x-o.x>0&&e.x-o.x<18&&Math.abs(o.y-e.y)<16;});if(!ahead){e.x-=e.speed*dt;e.walkCycle+=dt*9;}}
         }
         else if(target&&e.attackCooldown<=0){e.attackCooldown=1.05;e.attackAnim=1;
           if(e.type==='quillthrower'){
@@ -1469,7 +1469,10 @@
     porc_gladiator_walk2:'assets/units/walk/porc_gladiator_walk2.webp',porc_warlord_walk2:'assets/units/walk/porc_warlord_walk2.webp',porc_quillthrower_walk2:'assets/units/walk/porc_quillthrower_walk2.webp',
     rat_scurrier_l1:'assets/units/armor/rat_scurrier_l1.webp',rat_scurrier_l2:'assets/units/armor/rat_scurrier_l2.webp',rat_scurrier_l3:'assets/units/armor/rat_scurrier_l3.webp',
     rat_archer_l1:'assets/units/armor/rat_archer_l1.webp',rat_archer_l2:'assets/units/armor/rat_archer_l2.webp',rat_archer_l3:'assets/units/armor/rat_archer_l3.webp',
-    rat_brute_l1:'assets/units/armor/rat_brute_l1.webp',rat_brute_l2:'assets/units/armor/rat_brute_l2.webp',rat_brute_l3:'assets/units/armor/rat_brute_l3.webp'};for(var k in defs){var im=new Image();im.src=defs[k];SPRITES[k]=im;}})();
+    rat_brute_l1:'assets/units/armor/rat_brute_l1.webp',rat_brute_l2:'assets/units/armor/rat_brute_l2.webp',rat_brute_l3:'assets/units/armor/rat_brute_l3.webp',
+    rat_scurrier_l1_walk2:'assets/units/walk/rat_scurrier_l1_walk2.webp',rat_scurrier_l2_walk2:'assets/units/walk/rat_scurrier_l2_walk2.webp',rat_scurrier_l3_walk2:'assets/units/walk/rat_scurrier_l3_walk2.webp',
+    rat_archer_l1_walk2:'assets/units/walk/rat_archer_l1_walk2.webp',rat_archer_l2_walk2:'assets/units/walk/rat_archer_l2_walk2.webp',rat_archer_l3_walk2:'assets/units/walk/rat_archer_l3_walk2.webp',
+    rat_brute_l1_walk2:'assets/units/walk/rat_brute_l1_walk2.webp',rat_brute_l2_walk2:'assets/units/walk/rat_brute_l2_walk2.webp',rat_brute_l3_walk2:'assets/units/walk/rat_brute_l3_walk2.webp'};for(var k in defs){var im=new Image();im.src=defs[k];SPRITES[k]=im;}})();
     function drawSpriteUnit(img,img2,x,y,targetH,flip,walkCycle,attackAnim){
       if(!img||!img.complete||!img.naturalWidth)return false;
       var use2=img2&&img2.complete&&img2.naturalWidth&&Math.sin(walkCycle||0)>0;
