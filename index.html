@@ -174,7 +174,7 @@
       <button class="menu-btn secondary" id="btn-menu-settings" type="button">SETTINGS</button>
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
-    <p id="menu-save-hint">Your campaign lives in this link — re-add your home-screen shortcut from this page to keep your progress.</p>
+    <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -213,6 +213,8 @@
       <p>Adjust the woodland score and battlefield effects independently.</p>
       <div class="setting-row"><span>BACKGROUND MUSIC</span><button class="toggle-btn" id="toggle-music" type="button" aria-pressed="true">ON</button></div>
       <div class="setting-row"><span>SOUND EFFECTS</span><button class="toggle-btn" id="toggle-sfx" type="button" aria-pressed="true">ON</button></div>
+      <div class="setting-row"><span>SAVE BACKUP CODE</span><button class="toggle-btn" id="btn-copy-backup" type="button">COPY</button></div>
+      <div class="setting-row"><span>RESTORE FROM CODE</span><button class="toggle-btn" id="btn-restore-backup" type="button">RESTORE</button></div>
       <div class="modal-actions"><button class="modal-btn" id="btn-close-settings" type="button">CLOSE</button></div>
     </div>
   </section>
@@ -284,7 +286,7 @@
   <button id="panic-btn" type="button">RESURGENCE NOVA</button>
   <button id="horn-btn">📯 WAR HORN</button>
   <div id="banner" role="status" aria-live="polite"></div>
-  <div id="save-toast" role="status" aria-live="polite">Progress saved to this link!</div>
+  <div id="save-toast" role="status" aria-live="polite">Progress saved on this phone!</div>
   <div id="tutorial-overlay">
     <div id="tutorial-text"></div>
     <div style="display:flex; gap:10px; justify-content:center; margin-top:10px;">
@@ -853,6 +855,25 @@
     document.getElementById('btn-close-settings').addEventListener('click',closeSettings);
     toggleMusic.addEventListener('click',function(){AudioEngine.init();AudioEngine.setMusic(!AudioEngine.musicEnabled);setToggleState(toggleMusic,AudioEngine.musicEnabled);syncStateToUrl();});
     toggleSfx.addEventListener('click',function(){AudioEngine.init();AudioEngine.setSfx(!AudioEngine.sfxEnabled);setToggleState(toggleSfx,AudioEngine.sfxEnabled);syncStateToUrl();});
+    function getBackupCode(){syncStateToUrl();var h=(window.location.hash||'').replace(/^#/,'');return 'TH1-'+btoa(unescape(encodeURIComponent(h))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
+    function toastMsg(m){var t=document.getElementById('save-toast');t.textContent=m;showSaveToast();}
+    document.getElementById('btn-copy-backup').addEventListener('click',function(){
+      var code=getBackupCode();
+      function fallback(){try{var ta=document.createElement('textarea');ta.value=code;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toastMsg('Backup code copied — save it somewhere safe.');}catch(e){prompt('Copy your backup code:',code);}}
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(code).then(function(){toastMsg('Backup code copied — save it somewhere safe.');},fallback);}else{fallback();}
+    });
+    document.getElementById('btn-restore-backup').addEventListener('click',function(){
+      var code=prompt('Paste your backup code:');if(!code)return;
+      try{
+        var b64=code.replace(/^TH1-/,'').replace(/-/g,'+').replace(/_/g,'/');
+        while(b64.length%4)b64+='=';
+        var hash=decodeURIComponent(escape(atob(b64)));
+        if(!/^s=\d+/.test(hash))throw new Error('bad');
+        history.replaceState(null,'',window.location.pathname+window.location.search+'#'+hash);
+        try{localStorage.setItem(TIDE_SAVE_KEY,hash);}catch(e){}
+        readStateFromUrl();updateMenuState();updateHUD();toastMsg('Save restored.');
+      }catch(e){alert('That code did not look right — nothing was changed.');}
+    });
     document.getElementById('btn-menu-new').addEventListener('click',function(){resetModal.style.display='flex';});
     document.getElementById('btn-cancel-reset').addEventListener('click',function(){resetModal.style.display='none';});
     document.getElementById('btn-confirm-reset').addEventListener('click',function(){gameState.highestCleared=0;gameState.unlockedBrute=false;gameState.unlockedArcher=false;gameState.currentStage=1;gameState.gold=0;gameState.upgrades={scurrier:0,archer:0,brute:0};try{localStorage.removeItem(TIDE_SAVE_KEY);}catch(e){}syncStateToUrl();updateMenuState();resetModal.style.display='none';startGameplay(1);});
