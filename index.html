@@ -66,7 +66,7 @@
     #save-toast { position:absolute; z-index:320; top:max(14px,env(safe-area-inset-top)); left:50%; padding:9px 16px; transform:translate(-50%,-12px); opacity:0; border:1px solid #d7ba52; border-radius:5px; background:#173521; color:#fff1ae; box-shadow:0 7px 20px rgba(0,0,0,.6); font-size:10px; font-weight:900; letter-spacing:.035em; pointer-events:none; transition:opacity .18s,transform .18s; }
     #save-toast.show { opacity:1; transform:translate(-50%,0); }
 
-    #mission-modal,#settings-modal,#reset-modal,#result-modal,#pause-modal,#howto-modal {
+    #mission-modal,#settings-modal,#reset-modal,#result-modal,#pause-modal,#howto-modal,#upgrade-modal {
       position:absolute; inset:0; z-index:260; display:none; align-items:center; justify-content:center; padding:14px; background:rgba(3,9,5,.88);
     }
     .modal-box { width:min(540px,94vw); padding:18px; border:1px solid #c2a647; border-radius:8px; background:linear-gradient(155deg,#193522,#0e1d13); box-shadow:0 18px 50px #000; text-align:center; }
@@ -83,6 +83,12 @@
     .modal-actions { display:flex; justify-content:center; gap:9px; margin-top:14px; }
     .modal-btn { min-width:102px; min-height:36px; padding:7px 12px; border:1px solid #65866e; border-radius:5px; background:#223a28; font-size:10px; font-weight:900; cursor:pointer; }
     .modal-btn.confirm { border-color:#b04d43; background:#64241f; }
+    .gold-badge { display:inline-block; margin:8px 0 4px; padding:6px 14px; border:1px solid #d7ba52; border-radius:14px; background:#2a2111; color:#ffd97a; font-size:11px; font-weight:900; letter-spacing:.06em; }
+    #menu-gold { margin:2px 0 10px; }
+    .pips { color:#ffd97a; letter-spacing:2px; font-size:11px; }
+    .pips .off { color:#5a5347; }
+    .buy-btn { min-width:84px; min-height:31px; padding:5px 10px; border:1px solid #d7ba52; border-radius:4px; background:#6b5313; color:#ffedb0; font-size:9px; font-weight:900; cursor:pointer; }
+    .buy-btn:disabled { border-color:#5a5347; background:#2c2c2c; color:#8a8a8a; cursor:not-allowed; }
 
     #top-hud { position:absolute; z-index:20; top:max(9px,env(safe-area-inset-top)); left:12px; right:12px; display:flex; justify-content:space-between; align-items:flex-start; pointer-events:none; }
     .hud-left,#hud-btns { display:flex; gap:7px; pointer-events:auto; }
@@ -158,14 +164,26 @@
     <div class="menu-crest" aria-hidden="true"></div>
     <h1 id="menu-title">TIDE OF THE UNDER-HORDE</h1>
     <p id="menu-subtitle">PORCUPINE BARONY · TEN-STAGE VANGUARD CAMPAIGN</p>
+    <div id="menu-gold" class="gold-badge">🪙 <span id="menu-gold-val">0</span> GOLD</div>
     <div class="menu-btns">
       <button class="menu-btn" id="btn-menu-continue" type="button">START CAMPAIGN</button>
       <button class="menu-btn secondary" id="btn-menu-howto" type="button">HOW TO PLAY</button>
       <button class="menu-btn secondary" id="btn-menu-select" type="button">MISSION SELECT</button>
+      <button class="menu-btn secondary" id="btn-menu-upgrades" type="button">UPGRADES</button>
       <button class="menu-btn secondary" id="btn-menu-settings" type="button">SETTINGS</button>
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign lives in this link — re-add your home-screen shortcut from this page to keep your progress.</p>
+  </section>
+
+  <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
+    <div class="modal-box">
+      <h2 id="upgrade-title">WARREN UPGRADES</h2>
+      <p>Spend battle gold. Each level: +8% HP and damage. Max level 3 per unit.</p>
+      <div id="upgrade-gold" class="gold-badge">🪙 <span id="upgrade-gold-val">0</span> GOLD</div>
+      <div id="upgrade-rows"></div>
+      <div class="modal-actions"><button class="modal-btn" id="btn-close-upgrade" type="button">DONE</button></div>
+    </div>
   </section>
 
   <section id="howto-modal" role="dialog" aria-modal="true" aria-labelledby="howto-title">
@@ -643,7 +661,7 @@
       playWin:function(){var self=this;[261.63,329.63,392,523.25].forEach(function(f,i){self.tone(f,f,.35,'triangle',.2,'sfx',i*.1);});}
     };
 
-    var gameState={highestCleared:0,unlockedBrute:false,unlockedArcher:false,tutorialSeen:false,currentStage:1};
+    var gameState={highestCleared:0,unlockedBrute:false,unlockedArcher:false,tutorialSeen:false,currentStage:1,gold:0,upgrades:{scurrier:0,archer:0,brute:0}};
     function readStateFromUrl(){
       try{
         var p=new URLSearchParams(window.location.hash.replace('#','')),s=parseInt(p.get('s'),10),c=parseInt(p.get('c'),10);
@@ -653,12 +671,19 @@
         else gameState.unlockedArcher=gameState.highestCleared>=2;
         if (p.has('t')) gameState.tutorialSeen = p.get('t') === '1';
         gameState.currentStage=Math.max(1,Math.min(10,Number.isFinite(c)?c:1));
+        if (p.has('g')) gameState.gold = Math.max(0, parseInt(p.get('g'), 10) || 0);
+        if (p.has('u')) { var us = p.get('u') || '000';
+          gameState.upgrades.scurrier = Math.max(0, Math.min(3, parseInt(us[0], 10) || 0));
+          gameState.upgrades.archer = Math.max(0, Math.min(3, parseInt(us[1], 10) || 0));
+          gameState.upgrades.brute = Math.max(0, Math.min(3, parseInt(us[2], 10) || 0));
+        }
       }catch(e){}
     }
     var TIDE_SAVE_KEY='tideUnderHordeSaveV1';
     function syncStateToUrl(){
       try{
-        var hash=`s=${gameState.highestCleared}&a=${gameState.unlockedArcher ? 1 : 0}&b=${gameState.unlockedBrute ? 1 : 0}&t=${gameState.tutorialSeen ? 1 : 0}&c=${gameState.currentStage}`;
+        var up=gameState.upgrades;
+        var hash=`s=${gameState.highestCleared}&a=${gameState.unlockedArcher ? 1 : 0}&b=${gameState.unlockedBrute ? 1 : 0}&t=${gameState.tutorialSeen ? 1 : 0}&c=${gameState.currentStage}&g=${gameState.gold}&u=${up.scurrier}${up.archer}${up.brute}`;
         history.replaceState(null,'',window.location.pathname+window.location.search+'#'+hash);
         try{localStorage.setItem(TIDE_SAVE_KEY,hash);}catch(e){}
       }catch(e){}
@@ -691,7 +716,7 @@
     var bannerTimer=0,resultAction=null;
     var stageNames=['OUTSKIRT BRIARS','TIMBER POST','THORN CORRIDOR','SPIKED RUNWAY','BRAMBLE REDOUBT','THE QUILLERIES','IRON PALISADE','HIGH SHIELD BASTION',"SOVEREIGN'S GATE",'CITADEL OF THORN-QUILL'];
 
-    var menuScreen=document.getElementById('menu-screen'),missionModal=document.getElementById('mission-modal'),settingsModal=document.getElementById('settings-modal'),resetModal=document.getElementById('reset-modal'),resultModal=document.getElementById('result-modal'),pauseModal=document.getElementById('pause-modal'),howtoModal=document.getElementById('howto-modal');
+    var menuScreen=document.getElementById('menu-screen'),missionModal=document.getElementById('mission-modal'),settingsModal=document.getElementById('settings-modal'),resetModal=document.getElementById('reset-modal'),resultModal=document.getElementById('result-modal'),pauseModal=document.getElementById('pause-modal'),howtoModal=document.getElementById('howto-modal'),upgradeModal=document.getElementById('upgrade-modal');
     var settingsReturn=null;
     var cardScurrier=document.getElementById('card-scurrier'),cardBrute=document.getElementById('card-brute'),cardArcher=document.getElementById('card-archer'),panicBtn=document.getElementById('panic-btn');
     var toggleMusic=document.getElementById('toggle-music'),toggleSfx=document.getElementById('toggle-sfx');
@@ -740,7 +765,31 @@
       isGameRunning = false; updateHUD(); updateMenuState();
       menuScreen.style.display = 'flex'; AudioEngine.startMenuBGM();
     });
-    function updateMenuState(){document.getElementById('btn-menu-continue').textContent=gameState.currentStage>1?'CONTINUE — STAGE '+gameState.currentStage:'START CAMPAIGN';}
+    function updateMenuState(){document.getElementById('btn-menu-continue').textContent=gameState.currentStage>1?'CONTINUE — STAGE '+gameState.currentStage:'START CAMPAIGN';document.getElementById('menu-gold-val').textContent=gameState.gold;}
+    var UPGRADE_COSTS=[30,60,100];
+    var UPGRADE_UNITS=[['scurrier','🐀','SWARM RAT'],['archer','🏹','ARCHER'],['brute','🛡','BRUTE']];
+    function upgradeMult(u){return 1+(gameState.upgrades[u]||0)*0.08;}
+    function populateUpgradeRows(){
+      document.getElementById('upgrade-gold-val').textContent=gameState.gold;
+      var rows=document.getElementById('upgrade-rows');rows.textContent='';
+      UPGRADE_UNITS.forEach(function(cfg){
+        var u=cfg[0],lvl=gameState.upgrades[u]||0,maxed=lvl>=3;
+        var row=document.createElement('div');row.className='setting-row';
+        var pips='';for(var i=0;i<3;i++)pips+='<span class="'+(i<lvl?'':'off')+'">●</span>';
+        var label=document.createElement('span');label.innerHTML=cfg[1]+' '+cfg[2]+' <span class="pips">'+pips+'</span><br><span style="font-size:8px;color:#a9d7b3">+'+Math.round((upgradeMult(u)-1)*100)+'% HP & damage</span>';
+        var btn=document.createElement('button');btn.className='buy-btn';btn.type='button';
+        if(maxed){btn.textContent='MAX';btn.disabled=true;}
+        else{var cost=UPGRADE_COSTS[lvl];btn.textContent=cost+' 🪙';btn.disabled=gameState.gold<cost;
+          btn.addEventListener('click',function(){
+            if(gameState.gold<UPGRADE_COSTS[gameState.upgrades[u]]||gameState.upgrades[u]>=3)return;
+            gameState.gold-=UPGRADE_COSTS[gameState.upgrades[u]];gameState.upgrades[u]++;
+            syncStateToUrl();populateUpgradeRows();updateMenuState();
+          });
+        }
+        row.appendChild(label);row.appendChild(btn);rows.appendChild(row);
+      });
+    }
+    function openUpgrades(){AudioEngine.init();populateUpgradeRows();upgradeModal.style.display='flex';}
     function populateMissionGrid(){
       var grid=document.getElementById('stage-grid');grid.textContent='';var max=Math.min(10,gameState.highestCleared+1);
       for(var s=1;s<=10;s++)(function(stage){
@@ -749,7 +798,7 @@
         if(stage<=max)btn.addEventListener('click',function(){missionModal.style.display='none';startGameplay(stage);});grid.appendChild(btn);
       })(s);
     }
-    function startGameplay(level){level=Math.max(1,Math.min(10,parseInt(level,10)||1));gameState.currentStage=level;syncStateToUrl();menuScreen.style.display='none';missionModal.style.display='none';settingsModal.style.display='none';resetModal.style.display='none';resultModal.style.display='none';howtoModal.style.display='none';setupStage(level);isGameRunning=true;AudioEngine.init();AudioEngine.startGameBGM();}
+    function startGameplay(level){level=Math.max(1,Math.min(10,parseInt(level,10)||1));gameState.currentStage=level;syncStateToUrl();menuScreen.style.display='none';missionModal.style.display='none';settingsModal.style.display='none';resetModal.style.display='none';resultModal.style.display='none';howtoModal.style.display='none';upgradeModal.style.display='none';setupStage(level);isGameRunning=true;AudioEngine.init();AudioEngine.startGameBGM();}
     function setupStage(lvl){
       currentStage=lvl;allies=[];enemies=[];particles=[];floatingTexts=[];activeTurretShots=[];ambientArcProjectiles=[];biomass=20;ratBaseHp=maxRatBaseHp;maxPorcBaseHp=800+lvl*120;porcBaseHp=maxPorcBaseHp;panicAvailable=true;isGameOver=false;camX=0;stageTime=0;bossSpawned=false;enemyWaveTimer=(lvl === 1 ? 8.0 : 5.0);ratTurretCooldown=.7;porcTurretCooldown=1.1;ambientArtilleryTimer=2;
       hornTimer = 0; hornCooldown = 0; shockwaves = []; rangedShots = [];
@@ -783,6 +832,8 @@
     document.getElementById('btn-menu-continue').addEventListener('click',function(){startGameplay(gameState.currentStage);});
     document.getElementById('btn-menu-select').addEventListener('click',function(){AudioEngine.init();populateMissionGrid();missionModal.style.display='flex';});
     document.getElementById('btn-menu-howto').addEventListener('click',function(){AudioEngine.init();howtoModal.style.display='flex';});
+    document.getElementById('btn-menu-upgrades').addEventListener('click',openUpgrades);
+    document.getElementById('btn-close-upgrade').addEventListener('click',function(){upgradeModal.style.display='none';});
     document.getElementById('btn-howto-tutorial').addEventListener('click',function(){howtoModal.style.display='none';startGameplay(1);showTutorialStep(0);});
     document.getElementById('btn-howto-tips').addEventListener('click',function(){howtoModal.style.display='none';showTutorialStep(0);});
     document.getElementById('btn-close-mission').addEventListener('click',function(){missionModal.style.display='none';});
@@ -793,7 +844,7 @@
     toggleSfx.addEventListener('click',function(){AudioEngine.init();AudioEngine.setSfx(!AudioEngine.sfxEnabled);setToggleState(toggleSfx,AudioEngine.sfxEnabled);syncStateToUrl();});
     document.getElementById('btn-menu-new').addEventListener('click',function(){resetModal.style.display='flex';});
     document.getElementById('btn-cancel-reset').addEventListener('click',function(){resetModal.style.display='none';});
-    document.getElementById('btn-confirm-reset').addEventListener('click',function(){gameState.highestCleared=0;gameState.unlockedBrute=false;gameState.unlockedArcher=false;gameState.currentStage=1;try{localStorage.removeItem(TIDE_SAVE_KEY);}catch(e){}syncStateToUrl();updateMenuState();resetModal.style.display='none';startGameplay(1);});
+    document.getElementById('btn-confirm-reset').addEventListener('click',function(){gameState.highestCleared=0;gameState.unlockedBrute=false;gameState.unlockedArcher=false;gameState.currentStage=1;gameState.gold=0;gameState.upgrades={scurrier:0,archer:0,brute:0};try{localStorage.removeItem(TIDE_SAVE_KEY);}catch(e){}syncStateToUrl();updateMenuState();resetModal.style.display='none';startGameplay(1);});
     document.getElementById('btn-hud-menu').addEventListener('click',function(){if(!isGameRunning)return;isGameRunning=false;updateHUD();pauseModal.style.display='flex';});
     document.getElementById('btn-resume').addEventListener('click',function(){pauseModal.style.display='none';isGameRunning=true;updateHUD();});
     document.getElementById('btn-pause-audio').addEventListener('click',function(){pauseModal.style.display='none';settingsReturn='pause';openSettings();});
@@ -832,17 +883,19 @@
     function spawnRatUnit(type){
       var roadY=HIGHWAY_Y+(Math.random()*40-20);
       var vet=1+(currentStage-1)*0.04; // battle-hardened swarm: rats grow stronger each stage
+      var upg=1+((gameState.upgrades[type]||0)*0.08); // purchased upgrades: +8% HP/dmg per level
+      var mult=vet*upg;
       if(type==='scurrier'){
-        allies.push({type:type,x:RAT_CASTLE_X+40,y:roadY,hp:65*vet,maxHp:65*vet,dmg:14*vet,range:28,speed:70,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
+        allies.push({type:type,x:RAT_CASTLE_X+40,y:roadY,hp:65*mult,maxHp:65*mult,dmg:14*mult,range:28,speed:70,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
       } else if (type === 'archer') {
         allies.push({
           type: 'archer',
           x: RAT_CASTLE_X + 40, y: roadY,
-          hp: 50*vet, maxHp: 50*vet, dmg: 12*vet, range: 140, speed: 55,
+          hp: 50*mult, maxHp: 50*mult, dmg: 12*mult, range: 140, speed: 55,
           attackCooldown: 0, walkCycle: Math.random() * 5, attackAnim: 0
         });
       } else {
-        allies.push({type:type,x:RAT_CASTLE_X+20,y:roadY,hp:260*vet,maxHp:260*vet,dmg:28*vet,range:34,speed:38,reflect:.25,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
+        allies.push({type:type,x:RAT_CASTLE_X+20,y:roadY,hp:260*mult,maxHp:260*mult,dmg:28*mult,range:34,speed:38,reflect:.25,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
       }
     }
     function spawnPorcupineEnemy(type,forceBoss){
@@ -856,18 +909,20 @@
     function spawnBlood(x,y,color){for(var i=0;i<6;i++)particles.push({x:x,y:y,vx:(Math.random()-.5)*110,vy:-Math.random()*80,color:color,size:Math.random()*3+2,life:.35});}
 
     function showResult(title,copy,label,action){document.getElementById('result-title').textContent=title;document.getElementById('result-copy').textContent=copy;document.getElementById('btn-result').textContent=label;resultAction=action;resultModal.style.display='flex';}
+    function awardGold(n){gameState.gold+=n;syncStateToUrl();updateMenuState();}
     function handleVictory(){
       isGameOver=true;isGameRunning=false;AudioEngine.playWin();gameState.highestCleared=Math.max(gameState.highestCleared,currentStage);
       if (currentStage === 2 && !gameState.unlockedArcher) {
         gameState.unlockedArcher = true;
       }
       if(currentStage===10)gameState.unlockedBrute=true;
+      var goldEarned=15+5*currentStage;awardGold(goldEarned);
       syncStateToUrl();updateMenuState();showSaveToast();
-      if(currentStage===10){showResult('BARONY BROKEN','Warlord Thorn-Quill is defeated. The Quill-Plated Brute is now unlocked in your deck.','RETURN TO CAMPAIGN',function(){menuScreen.style.display='flex';AudioEngine.startMenuBGM();});}
-      else{var next=currentStage+1;showResult('STAGE SECURED',stageNames[currentStage-1]+' has fallen. Stage '+next+' is now open.','ADVANCE',function(){startGameplay(next);});}
+      if(currentStage===10){showResult('BARONY BROKEN','Warlord Thorn-Quill is defeated. The Quill-Plated Brute is now unlocked in your deck. +'+goldEarned+' gold.','RETURN TO CAMPAIGN',function(){menuScreen.style.display='flex';AudioEngine.startMenuBGM();});}
+      else{var next=currentStage+1;showResult('STAGE SECURED',stageNames[currentStage-1]+' has fallen. Stage '+next+' is now open. +'+goldEarned+' gold.','ADVANCE',function(){startGameplay(next);});}
       updateHUD();
     }
-    function handleDefeat(){isGameOver=true;isGameRunning=false;showResult('WARREN SHATTERED','The Under-Warren fell beneath the quill assault. Regroup and defend it again.','RETRY',function(){startGameplay(currentStage);});updateHUD();}
+    function handleDefeat(){isGameOver=true;isGameRunning=false;awardGold(5);showResult('WARREN SHATTERED','The Under-Warren fell beneath the quill assault. +5 gold for the fallen. Regroup and try again.','RETRY',function(){startGameplay(currentStage);});updateHUD();}
 
     function updateSimulation(dt){
       if(isGameOver)return;
