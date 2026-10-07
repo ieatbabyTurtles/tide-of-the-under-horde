@@ -627,6 +627,7 @@
     function resize(){
       dpr=Math.min(2,window.devicePixelRatio||1);width=window.innerWidth;height=window.innerHeight;
       canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);canvas.style.width=width+'px';canvas.style.height=height+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+      HIGHWAY_Y=Math.round(height*0.5);
       camX=Math.max(0,Math.min(Math.max(0,MAP_WIDTH-width),camX));
     }
     window.addEventListener('resize',resize);resize();
@@ -1065,10 +1066,10 @@
         drawWoodlandPine(tx, crestY, 0.85);
       }
       for (let tx = -80; tx < MAP_WIDTH + 150; tx += 130) {
-        drawWoodlandPine(tx, HIGHWAY_Y + ROAD_HALF_WIDTH + 75, 0.9);
+        drawWoodlandPine(tx, HIGHWAY_Y + ROAD_HALF_WIDTH + 60, 1.0);
       }
       for (let tx = -20; tx < MAP_WIDTH + 150; tx += 210) {
-        drawWoodlandPine(tx, height - 30, 1.05);
+        drawWoodlandPine(tx, height - 30, 1.15);
       }
       // Grass tufts and wildflowers dotting the southern field
       ctx.lineCap = 'round';
