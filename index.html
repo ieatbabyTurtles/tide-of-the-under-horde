@@ -1021,7 +1021,7 @@
           a.attackCooldown = 0.85;
           a.attackAnim = 1.0;
           if (a.type === 'archer') {
-            rangedShots.push({ x1: a.x, y1: a.y - 14, x2: target.x, y2: target.y - 10, life: 0.14 });
+            rangedShots.push({ x1: a.x, y1: a.y - 14, x2: target.x, y2: target.y - 10, life: 0.2 });
             AudioEngine.playQuillThrow();
           } else {
             AudioEngine.playEpicClash();
@@ -1466,9 +1466,9 @@
       ctx.beginPath();ctx.ellipse(0,(-25*s+flick),4.6*s,5.6*s,-0.2,0,Math.PI*2);ctx.fill();
       ctx.fillStyle='#ef96aa';
       ctx.beginPath();ctx.ellipse(0.5*s,(-24*s+flick),2.6*s,3.6*s,-0.2,0,Math.PI*2);ctx.fill();
-      // Whiskers
-      ctx.strokeStyle='rgba(240,230,220,.65)';ctx.lineWidth=0.8;
-      for(var w=0;w<3;w++){ctx.beginPath();ctx.moveTo(15*s,(-16+w*2.2)*s);ctx.lineTo((23+w*2)*s,(-18+w*3)*s);ctx.stroke();}
+      // Whiskers — short and subtle
+      ctx.strokeStyle='rgba(240,230,220,.35)';ctx.lineWidth=0.6;
+      for(var w=0;w<3;w++){ctx.beginPath();ctx.moveTo(14*s,(-16+w*2)*s);ctx.lineTo((19+w*1.2)*s,(-17+w*2.6)*s);ctx.stroke();}
       // Claw-swipe attack arcs — rats fight with tooth and claw, no manufactured weapons
       if(u.attackAnim>0){
         var al=u.attackAnim,sw=(1-al)*0.9;
@@ -1495,6 +1495,17 @@
           ctx.beginPath();ctx.moveTo(qx-2.1,-10.5);ctx.lineTo(qx-3,-15);ctx.stroke();
         }
         ctx.restore();
+        // Visible throwing motion: raised paw hurls a quill as the arm swings forward
+        if(u.attackAnim>0.35){
+          var ta=u.attackAnim;
+          ctx.save();ctx.translate(9*s,-13*s);ctx.rotate(-0.9*ta+0.25);
+          ctx.fillStyle='#24150b';ctx.beginPath();ctx.arc(0,0,2.6*s,0,Math.PI*2);ctx.fill();
+          ctx.strokeStyle='#0d0b09';ctx.lineWidth=2.2*s/1.45;ctx.lineCap='round';
+          ctx.beginPath();ctx.moveTo(0,-1*s);ctx.lineTo(3*s,-13*s);ctx.stroke();
+          ctx.strokeStyle='#f3ecd9';ctx.lineWidth=1.4;
+          ctx.beginPath();ctx.moveTo(2.1*s,-9.1*s);ctx.lineTo(3*s,-13*s);ctx.stroke();
+          ctx.restore();
+        }
       }
       ctx.restore();
       const bW = u.type === 'brute' ? 36 : 24;
@@ -1633,14 +1644,16 @@
       drawTurretProjectiles();
       rangedShots.forEach(s => {
         ctx.save();
-        var t = 1 - s.life / 0.14;
+        var t = 1 - s.life / 0.2;
         var qx = s.x1 + (s.x2 - s.x1) * t, qy = s.y1 + (s.y2 - s.y1) * t;
         ctx.translate(qx, qy); ctx.rotate(Math.atan2(s.y2 - s.y1, s.x2 - s.x1));
         ctx.lineCap = 'round';
-        ctx.strokeStyle = '#0d0b09'; ctx.lineWidth = 2.6;
-        ctx.beginPath(); ctx.moveTo(-9, 0); ctx.lineTo(6, 0); ctx.stroke();
-        ctx.strokeStyle = '#f3ecd9'; ctx.lineWidth = 1.7;
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(6, 0); ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,255,255,0.28)'; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.moveTo(-18, 0); ctx.lineTo(-11, 0); ctx.stroke();
+        ctx.strokeStyle = '#0d0b09'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(-11, 0); ctx.lineTo(8, 0); ctx.stroke();
+        ctx.strokeStyle = '#f3ecd9'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(1, 0); ctx.lineTo(8, 0); ctx.stroke();
         ctx.restore();
       });
       shockwaves.forEach(s => {
