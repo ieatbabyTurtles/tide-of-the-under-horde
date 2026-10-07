@@ -161,6 +161,21 @@
   </style>
 </head>
 <body>
+<div id="js-debug" style="position:fixed;top:0;left:0;right:0;background:rgba(0,0,0,0.8);color:#4ade80;padding:8px;z-index:99999;font-family:monospace;font-size:11px;"></div>
+<script>
+window.addEventListener('error',function(e){
+  document.getElementById('js-debug').innerHTML+='<div style="color:#f87171">ERROR: '+(e.message||e.error)+'</div>';
+});
+window.addEventListener('unhandledrejection',function(e){
+  document.getElementById('js-debug').innerHTML+='<div style="color:#f87171">PROMISE: '+(e.reason&&e.reason.message||e.reason)+'</div>';
+});
+setInterval(function(){
+  var d=document.getElementById('js-debug');
+  if(d&&typeof isGameRunning!=='undefined'){
+    d.innerHTML='isGameRunning='+isGameRunning+' biomass='+(typeof biomass!=='undefined'?Math.floor(biomass):'?')+' allies='+(typeof allies!=='undefined'?allies.length:'?');
+  }
+},1000);
+</script>
   <div id="rotate-prompt" role="status"><span class="turn">↻</span><div>ROTATE PHONE SIDEWAYS</div><small>The Vanguard battlefield uses a wide tactical view.</small></div>
 
   <section id="menu-screen" aria-label="Campaign menu">
