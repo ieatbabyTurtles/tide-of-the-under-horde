@@ -216,6 +216,7 @@
       <div class="setting-row"><span>SOUND EFFECTS</span><button class="toggle-btn" id="toggle-sfx" type="button" aria-pressed="true">ON</button></div>
       <div class="setting-row"><span>SAVE BACKUP CODE</span><button class="toggle-btn" id="btn-copy-backup" type="button">COPY</button></div>
       <div class="setting-row"><span>RESTORE FROM CODE</span><button class="toggle-btn" id="btn-restore-backup" type="button">RESTORE</button></div>
+      <div class="setting-row"><span>CHECK FOR UPDATES</span><button class="toggle-btn" id="btn-check-updates" type="button">CHECK</button></div>
       <div class="modal-actions"><button class="modal-btn" id="btn-close-settings" type="button">CLOSE</button></div>
     </div>
   </section>
@@ -874,6 +875,10 @@
         try{localStorage.setItem(TIDE_SAVE_KEY,hash);}catch(e){}
         readStateFromUrl();updateMenuState();updateHUD();toastMsg('Save restored.');
       }catch(e){alert('That code did not look right — nothing was changed.');}
+    });
+    document.getElementById('btn-check-updates').addEventListener('click',function(){
+      if(window.forceGameUpdate){ window.forceGameUpdate(); toastMsg('Checking for updates…'); }
+      else { toastMsg('Update check not available.'); }
     });
     document.getElementById('btn-menu-new').addEventListener('click',function(){resetModal.style.display='flex';});
     document.getElementById('btn-cancel-reset').addEventListener('click',function(){resetModal.style.display='none';});
@@ -1708,7 +1713,38 @@
   })();
   </script>
 <script>
-if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}
+// Permanent update guard: this page checks the server for a newer build on
+// every launch and forces the service worker to update if one exists.
+// This prevents the "stuck on old version" problem permanently.
+(function(){
+  var PAGE_VERSION = 'v28';
+  function forceUpdateCheck(){
+    // Fetch sw.js with a cache-busting URL so the service worker can't serve
+    // a stale copy — the unique query string misses the SW cache and hits network.
+    fetch('./sw.js?uv=' + Date.now(), {cache: 'no-store'}).then(function(r){ return r.text(); }).then(function(t){
+      var m = t.match(/BUILD_VERSION\s*=\s*'(v\d+)'/);
+      if(m && m[1] !== PAGE_VERSION){
+        // Server has a newer build — force the SW to update, then reload.
+        if('serviceWorker' in navigator){
+          navigator.serviceWorker.getRegistration().then(function(reg){
+            if(reg){ reg.update().then(function(){ setTimeout(function(){ location.reload(); }, 1500); }); }
+            else { location.reload(); }
+          });
+        } else { location.reload(); }
+      }
+    }).catch(function(){ /* offline — stay on cached version */ });
+  }
+  // Manual trigger for the Settings "Check for Updates" button.
+  window.forceGameUpdate = forceUpdateCheck;
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('sw.js').catch(function(){});
+      // Check for updates on every launch, and every 2 minutes while open.
+      forceUpdateCheck();
+      setInterval(forceUpdateCheck, 120000);
+    });
+  }
+})();
 </script>
 </body>
 </html>
