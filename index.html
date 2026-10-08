@@ -176,7 +176,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v43</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v44</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -1578,7 +1578,7 @@
         ctx.drawImage(timg,-ttw/2,-tth/2,ttw,tth);ctx.restore();
       }
       ctx.fillStyle='#fca5a5';ctx.font='bold 9px sans-serif';
-      ctx.fillText('BALLISTA',cxf-20,cyf-30);
+      ctx.fillText('TREBUCHET',cxf-22,cyf-30);
     }
     function drawTurretProjectiles() {
       activeTurretShots.forEach(s => {
@@ -1615,7 +1615,7 @@
     rat_archer_l1_walk2:'assets/units/walk/rat_archer_l1_walk2.webp',rat_archer_l2_walk2:'assets/units/walk/rat_archer_l2_walk2.webp',rat_archer_l3_walk2:'assets/units/walk/rat_archer_l3_walk2.webp',
     rat_brute_l1_walk2:'assets/units/walk/rat_brute_l1_walk2.webp',rat_brute_l2_walk2:'assets/units/walk/rat_brute_l2_walk2.webp',rat_brute_l3_walk2:'assets/units/walk/rat_brute_l3_walk2.webp',
     rat_warren:'assets/buildings/rat_warren.webp',porc_citadel:'assets/buildings/porc_citadel.webp',
-    turret_rat_crossbow:'assets/buildings/turret_rat_crossbow.webp',turret_porc_quillshooter:'assets/buildings/turret_porc_quillshooter.webp'};for(var k in defs){var im=new Image();im.src=defs[k];SPRITES[k]=im;}})();
+    turret_rat_crossbow:'assets/buildings/turret_rat_crossbow.webp',turret_porc_quillshooter:'assets/buildings/turret_porc_trebuchet.webp'};for(var k in defs){var im=new Image();im.src=defs[k];SPRITES[k]=im;}})();
     function drawSpriteUnit(img,img2,x,y,targetH,flip,walkCycle,attackAnim){
       if(!img||!img.complete||!img.naturalWidth)return false;
       var use2=img2&&img2.complete&&img2.naturalWidth&&Math.sin(walkCycle||0)>0;
@@ -1973,7 +1973,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v43';
+  var PAGE_VERSION = 'v44';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
