@@ -176,7 +176,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v37</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v38</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -288,7 +288,7 @@
       <span class="card-cost">10 BIO</span><span class="card-icon" aria-hidden="true">🐀</span><span class="card-name">SWARM ×2</span><div class="card-bonus">+15% vs massive</div>
     </button>
     <button class="unit-card locked" id="card-brute" type="button" aria-label="Deploy Brute for 30 biomass">
-      <span class="card-cost">30 BIO</span><span class="card-icon" aria-hidden="true">🛡</span><span class="card-name">BRUTE</span><div class="card-bonus">+15% vs armored</div><span class="lock-layer">DEFEAT<br>STAGE 10</span>
+      <span class="card-cost">30 BIO</span><span class="card-icon" aria-hidden="true">🛡</span><span class="card-name">BRUTE</span><div class="card-bonus">+15% vs armored</div><span class="lock-layer">DEFEAT<br>STAGE 5</span>
     </button>
     <div class="unit-card locked" id="card-archer">
       <div class="card-cost">15 BIO</div>
@@ -691,7 +691,7 @@
       try{
         var p=new URLSearchParams(window.location.hash.replace('#','')),s=parseInt(p.get('s'),10),c=parseInt(p.get('c'),10);
         gameState.highestCleared=Math.max(0,Math.min(10,Number.isFinite(s)?s:0));
-        gameState.unlockedBrute=p.get('b')==='1'||gameState.highestCleared>=10;
+        gameState.unlockedBrute=p.get('b')==='1'||gameState.highestCleared>=5;
         if (p.has('a')) gameState.unlockedArcher = p.get('a') === '1';
         else gameState.unlockedArcher=gameState.highestCleared>=2;
         if (p.has('t')) gameState.tutorialSeen = p.get('t') === '1';
@@ -1168,7 +1168,7 @@
     function spawnEnemyUnit(type,forceBoss){
       if(gameState.faction==='porcupines'){
         // AI plays rats: map porc types to rat equivalents
-        var ratType=type==='gladiator'?'scurrier':type==='champion'?'scurrier':type==='warlord'?'brute':type;
+        var ratType=type==='gladiator'?'scurrier':type==='champion'?'archer':type==='warlord'?'brute':type;
         spawnRatEnemy(ratType,forceBoss);
       } else {
         spawnPorcupineEnemy(type,forceBoss);
@@ -1195,7 +1195,8 @@
         if(currentStage===10)gameState.porcUnlockedWarlord=true;
       } else {
         gameState.highestCleared=Math.max(gameState.highestCleared,currentStage);
-        if(currentStage===10){gameState.unlockedBrute=true;gameState.porcUnlocked=true;}
+        if(currentStage===5)gameState.unlockedBrute=true;
+      if(currentStage===10){gameState.porcUnlocked=true;}
       }
       if (currentStage === 2 && !gameState.unlockedArcher && !isPorc) {
         gameState.unlockedArcher = true;
@@ -1204,8 +1205,11 @@
       syncStateToUrl();updateMenuState();showSaveToast();
       if(currentStage===10){
         var title=isPorc?'WARREN BROKEN':'BARONY BROKEN';
-        var desc=isPorc?'The Rat King is defeated. The Warlord is now unlocked in your deck. +'+goldEarned+' gold.':'Warlord Thorn-Quill is defeated. The Quill-Plated Brute is now unlocked in your deck. +'+goldEarned+' gold.';
+        var desc=isPorc?'The Rat King is defeated. +'+goldEarned+' gold.':'Warlord Thorn-Quill is defeated. The Porcupine Barony campaign is now unlocked! +'+goldEarned+' gold.';
         showResult(title,desc,'RETURN TO CAMPAIGN',function(){menuScreen.style.display='flex';AudioEngine.startMenuBGM();});
+      }
+      else if(currentStage===5&&!isPorc){
+        showResult('STAGE SECURED',stageNames[currentStage-1]+' has fallen. The BRUTE is now unlocked in your deck! +'+goldEarned+' gold.','ADVANCE',function(){showStoryBriefing(gameState.faction,6);});
       }
       else{var next=currentStage+1;showResult('STAGE SECURED',stageNames[currentStage-1]+' has fallen. Stage '+next+' is now open. +'+goldEarned+' gold.','ADVANCE',function(){showStoryBriefing(gameState.faction,next);});}
       updateHUD();
@@ -1950,7 +1954,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v37';
+  var PAGE_VERSION = 'v38';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
