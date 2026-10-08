@@ -176,7 +176,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v49</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v50</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -973,6 +973,11 @@
       if(isPorcPlayer){ porcBaseHp=maxPorcBaseHp=800+lvl*120; ratBaseHp=maxRatBaseHp; }
       else { ratBaseHp=maxRatBaseHp; maxPorcBaseHp=800+lvl*120; porcBaseHp=maxPorcBaseHp; }
       window.PLAYER_CASTLE_X=playerCastleX; window.ENEMY_CASTLE_X=enemyCastleX; window.IS_PORC_PLAYER=isPorcPlayer;
+      // Porc defense mode: survival timer (evacuation)
+      if(isPorcPlayer){
+        survivalDuration=150+lvl*15; // 165s stage 1 → 300s stage 10
+        survivalTimer=survivalDuration;
+      }
       panicAvailable=true;isGameOver=false;camX=isPorcPlayer?MAP_WIDTH-width:0;stageTime=0;bossSpawned=false;raidTimer=(lvl===1?55:45);enemyWaveTimer=(lvl === 1 ? 8.0 : 5.0);ratTurretCooldown=.7;porcTurretCooldown=1.1;ambientArtilleryTimer=2;
       capturePoints=[
         {x:650,y:HIGHWAY_Y,name:'WARREN POINT',owner:isPorcPlayer?'porcs':'rats',progress:0,progFaction:null},
@@ -2000,7 +2005,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v49';
+  var PAGE_VERSION = 'v50';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
