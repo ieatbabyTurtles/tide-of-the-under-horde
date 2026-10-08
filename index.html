@@ -176,7 +176,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v42</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v43</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -1372,12 +1372,20 @@
         const targetBase = (distToBase <= a.range + 8) && a.garrison == null;
 
         if (!target && !targetBase) {
-          // Pause to capture: if on a point not owned by our faction, hold position
+          // Pause to capture: if on a cleared point not owned by our faction, hold position
+          // (if defenders remain, keep advancing to engage them instead of standing in range)
           var myFaction = gameState.faction;
           var onUnownedPoint = false;
           for (var cpi = 0; cpi < capturePoints.length; cpi++) {
             var cp = capturePoints[cpi];
-            if (cp.owner !== myFaction && Math.hypot(a.x - cp.x, a.y - cp.y) < POINT_R) { onUnownedPoint = true; break; }
+            if (cp.owner !== myFaction && Math.hypot(a.x - cp.x, a.y - cp.y) < POINT_R) {
+              var defendersOnPoint = false;
+              for (var ei = 0; ei < enemies.length; ei++) {
+                var e = enemies[ei];
+                if (Math.hypot(e.x - cp.x, e.y - cp.y) < POINT_R) { defendersOnPoint = true; break; }
+              }
+              if (!defendersOnPoint) { onUnownedPoint = true; break; }
+            }
           }
           if (onUnownedPoint) {
             // Hold position to secure the point (still attacks via target logic above)
@@ -1965,7 +1973,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v42';
+  var PAGE_VERSION = 'v43';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
