@@ -8,7 +8,7 @@
 //    phone is offline, the cached copy is used instead.
 // 3. Static assets (sprites, icons) stay cache-first: fast and offline-friendly.
 //    Bump BUILD_VERSION whenever an asset file changes too.
-var BUILD_VERSION = 'v29';
+var BUILD_VERSION = 'v30';
 var CACHE = 'tide-under-horde-' + BUILD_VERSION;
 var ASSETS = ['./index.html', './manifest.json', './icon-192.png', './icon-512.png',
   './assets/units/rat_scurrier.webp', './assets/units/rat_archer.webp', './assets/units/rat_brute.webp',
