@@ -176,7 +176,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v48</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v49</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -683,8 +683,11 @@
       playWin:function(){var self=this;[261.63,329.63,392,523.25].forEach(function(f,i){self.tone(f,f,.35,'triangle',.2,'sfx',i*.1);});}
     };
 
-    var gameState={highestCleared:0,unlockedBrute:false,unlockedArcher:false,tutorialSeen:false,currentStage:1,gold:0,upgrades:{scurrier:0,archer:0,brute:0},
+    var gameState={highestCleared:0,unlockedBrute:false,unlockedArcher:false,tutorialSeen:false,currentStage:1,gold:0,porcGold:0,upgrades:{scurrier:0,archer:0,brute:0},
       faction:'rats',porcHighestCleared:0,porcUnlocked:false,porcUpgrades:{gladiator:0,quillthrower:0,warlord:0},porcUnlockedWarlord:false};
+    // Gold is per-faction: rats and porcs have separate pools
+    function currentGold(){return gameState.faction==='porcupines'?gameState.porcGold:gameState.gold;}
+    function spendGold(n){if(gameState.faction==='porcupines'){gameState.porcGold-=n;}else{gameState.gold-=n;}syncStateToUrl();updateMenuState();}
     function readStateFromUrl(){
       try{
         var p=new URLSearchParams(window.location.hash.replace('#','')),s=parseInt(p.get('s'),10),c=parseInt(p.get('c'),10);
@@ -695,6 +698,7 @@
         if (p.has('t')) gameState.tutorialSeen = p.get('t') === '1';
         gameState.currentStage=Math.max(1,Math.min(10,Number.isFinite(c)?c:1));
         if (p.has('g')) gameState.gold = Math.max(0, parseInt(p.get('g'), 10) || 0);
+        if (p.has('pg')) gameState.porcGold = Math.max(0, parseInt(p.get('pg'), 10) || 0);
         if (p.has('u')) { var us = p.get('u') || '000';
           gameState.upgrades.scurrier = Math.max(0, Math.min(3, parseInt(us[0], 10) || 0));
           gameState.upgrades.archer = Math.max(0, Math.min(3, parseInt(us[1], 10) || 0));
@@ -716,7 +720,7 @@
     function syncStateToUrl(){
       try{
         var up=gameState.upgrades, pup=gameState.porcUpgrades;
-        var hash=`s=${gameState.highestCleared}&a=${gameState.unlockedArcher ? 1 : 0}&b=${gameState.unlockedBrute ? 1 : 0}&t=${gameState.tutorialSeen ? 1 : 0}&c=${gameState.currentStage}&g=${gameState.gold}&u=${up.scurrier}${up.archer}${up.brute}&f=${gameState.faction === 'porcupines' ? 'p' : 'r'}&ps=${gameState.porcHighestCleared}&pu=${gameState.porcUnlocked ? 1 : 0}&pu2=${pup.gladiator}${pup.quillthrower}${pup.warlord}`;
+        var hash=`s=${gameState.highestCleared}&a=${gameState.unlockedArcher ? 1 : 0}&b=${gameState.unlockedBrute ? 1 : 0}&t=${gameState.tutorialSeen ? 1 : 0}&c=${gameState.currentStage}&g=${gameState.gold}&pg=${gameState.porcGold}&u=${up.scurrier}${up.archer}${up.brute}&f=${gameState.faction === 'porcupines' ? 'p' : 'r'}&ps=${gameState.porcHighestCleared}&pu=${gameState.porcUnlocked ? 1 : 0}&pu2=${pup.gladiator}${pup.quillthrower}${pup.warlord}`;
         history.replaceState(null,'',window.location.pathname+window.location.search+'#'+hash);
         try{localStorage.setItem(TIDE_SAVE_KEY,hash);}catch(e){}
       }catch(e){}
@@ -842,7 +846,7 @@
         var fname=gameState.faction==='porcupines'?'PORCUPINES':'RATS';
         btn.textContent='CONTINUE — '+fname+' STAGE '+st;
       }
-      document.getElementById('menu-gold-val').textContent=gameState.gold;
+      document.getElementById('menu-gold-val').textContent=currentGold();
       var sw=document.getElementById('btn-menu-factions');if(sw)sw.style.display=gameState.porcUnlocked?'':'none';
     }
     var UPGRADE_COSTS=[30,60,100];
@@ -858,7 +862,7 @@
       return 1+(lv[u]||0)*0.08;
     }
     function populateUpgradeRows(){
-      document.getElementById('upgrade-gold-val').textContent=gameState.gold;
+      document.getElementById('upgrade-gold-val').textContent=currentGold();
       var rows=document.getElementById('upgrade-rows');rows.textContent='';
       var units=getUpgradeUnits(), levels=getUpgradeLevels();
       document.getElementById('upgrade-title').textContent=gameState.faction==='porcupines'?'BARONY UPGRADES':'WARREN UPGRADES';
@@ -869,11 +873,11 @@
         var label=document.createElement('span');label.innerHTML=cfg[1]+' '+cfg[2]+' <span class="pips">'+pips+'</span><br><span style="font-size:8px;color:#a9d7b3">+'+Math.round((upgradeMult(u)-1)*100)+'% HP & damage</span>';
         var btn=document.createElement('button');btn.className='buy-btn';btn.type='button';
         if(maxed){btn.textContent='MAX';btn.disabled=true;}
-        else{var cost=UPGRADE_COSTS[lvl];btn.textContent=cost+' 🪙';btn.disabled=gameState.gold<cost;
+        else{var cost=UPGRADE_COSTS[lvl];btn.textContent=cost+' 🪙';btn.disabled=currentGold()<cost;
           btn.addEventListener('click',function(){
             var lv2=getUpgradeLevels();
-            if(gameState.gold<UPGRADE_COSTS[lv2[u]]||lv2[u]>=3)return;
-            gameState.gold-=UPGRADE_COSTS[lv2[u]];lv2[u]++;
+            if(currentGold()<UPGRADE_COSTS[lv2[u]]||lv2[u]>=3)return;
+            spendGold(UPGRADE_COSTS[lv2[u]]);lv2[u]++;
             syncStateToUrl();populateUpgradeRows();updateMenuState();
           });
         }
@@ -1062,7 +1066,7 @@
     });
     document.getElementById('btn-menu-new').addEventListener('click',function(){resetModal.style.display='flex';});
     document.getElementById('btn-cancel-reset').addEventListener('click',function(){resetModal.style.display='none';});
-    document.getElementById('btn-confirm-reset').addEventListener('click',function(){gameState.highestCleared=0;gameState.unlockedBrute=false;gameState.unlockedArcher=false;gameState.currentStage=1;gameState.gold=0;gameState.upgrades={scurrier:0,archer:0,brute:0};try{localStorage.removeItem(TIDE_SAVE_KEY);}catch(e){}syncStateToUrl();updateMenuState();resetModal.style.display='none';startGameplay(1);});
+    document.getElementById('btn-confirm-reset').addEventListener('click',function(){gameState.highestCleared=0;gameState.unlockedBrute=false;gameState.unlockedArcher=false;gameState.currentStage=1;gameState.gold=0;gameState.porcGold=0;gameState.upgrades={scurrier:0,archer:0,brute:0};try{localStorage.removeItem(TIDE_SAVE_KEY);}catch(e){}syncStateToUrl();updateMenuState();resetModal.style.display='none';startGameplay(1);});
     document.getElementById('btn-hud-menu').addEventListener('click',function(){if(!isGameRunning)return;isGameRunning=false;updateHUD();pauseModal.style.display='flex';});
     document.getElementById('btn-resume').addEventListener('click',function(){pauseModal.style.display='none';isGameRunning=true;updateHUD();});
     document.getElementById('btn-pause-audio').addEventListener('click',function(){pauseModal.style.display='none';settingsReturn='pause';openSettings();});
@@ -1196,7 +1200,7 @@
     function spawnBlood(x,y,color){for(var i=0;i<6;i++)particles.push({x:x,y:y,vx:(Math.random()-.5)*110,vy:-Math.random()*80,color:color,size:Math.random()*3+2,life:.35});}
 
     function showResult(title,copy,label,action){document.getElementById('result-title').textContent=title;document.getElementById('result-copy').textContent=copy;document.getElementById('btn-result').textContent=label;resultAction=action;resultModal.style.display='flex';}
-    function awardGold(n){gameState.gold+=n;syncStateToUrl();updateMenuState();}
+    function awardGold(n){if(gameState.faction==='porcupines'){gameState.porcGold+=n;}else{gameState.gold+=n;}syncStateToUrl();updateMenuState();}
     function handleVictory(){
       isGameOver=true;isGameRunning=false;AudioEngine.playWin();
       var isPorc=gameState.faction==='porcupines';
@@ -1996,7 +2000,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v48';
+  var PAGE_VERSION = 'v49';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
