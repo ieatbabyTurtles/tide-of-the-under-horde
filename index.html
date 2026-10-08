@@ -176,7 +176,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v52</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v53</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -1231,17 +1231,17 @@
       var goldEarned=15+5*currentStage;awardGold(goldEarned);
       syncStateToUrl();updateMenuState();showSaveToast();
       if(currentStage===10){
-        var title=isPorc?'WARREN BROKEN':'BARONY BROKEN';
-        var desc=isPorc?'The Rat King is defeated. +'+goldEarned+' gold.':'Prince Thorn-Quill is defeated. The Porcupine Barony campaign is now unlocked! +'+goldEarned+' gold.';
+        var title=isPorc?'EVACUATION COMPLETE':'BARONY BROKEN';
+        var desc=isPorc?'The last cart rolls north. The Barony holds. +'+goldEarned+' gold.':'Prince Thorn-Quill is defeated. The Porcupine Barony campaign is now unlocked! +'+goldEarned+' gold.';
         showResult(title,desc,'RETURN TO CAMPAIGN',function(){menuScreen.style.display='flex';AudioEngine.startMenuBGM();});
       }
       else if(currentStage===5&&!isPorc){
         showResult('STAGE SECURED',stageNames[currentStage-1]+' has fallen. The BRUTE is now unlocked in your deck! +'+goldEarned+' gold.','ADVANCE',function(){showStoryBriefing(gameState.faction,6);});
       }
-      else{var next=currentStage+1;showResult('STAGE SECURED',stageNames[currentStage-1]+' has fallen. Stage '+next+' is now open. +'+goldEarned+' gold.','ADVANCE',function(){showStoryBriefing(gameState.faction,next);});}
+      else{var next=currentStage+1;var vicDesc=isPorc?'The line holds. The evacuation continues. Stage '+next+' is now open. +'+goldEarned+' gold.':stageNames[currentStage-1]+' has fallen. Stage '+next+' is now open. +'+goldEarned+' gold.';showResult('STAGE SECURED',vicDesc,'ADVANCE',function(){showStoryBriefing(gameState.faction,next);});}
       updateHUD();
     }
-    function handleDefeat(){isGameOver=true;isGameRunning=false;awardGold(5);showResult('WARREN SHATTERED','The Under-Warren fell beneath the quill assault. +5 gold for the fallen. Regroup and try again.','RETRY',function(){startGameplay(currentStage);});updateHUD();}
+    function handleDefeat(){isGameOver=true;isGameRunning=false;awardGold(5);var defTitle=gameState.faction==='porcupines'?'CITADEL FALLEN':'WARREN SHATTERED';var defDesc=gameState.faction==='porcupines'?'The citadel fell. The evacuation carts never left. +5 gold for the fallen. Regroup and try again.':'The Under-Warren fell beneath the quill assault. +5 gold for the fallen. Regroup and try again.';showResult(defTitle,defDesc,'RETRY',function(){startGameplay(currentStage);});updateHUD();}
 
     function updateSimulation(dt){
       if(isGameOver)return;
@@ -1323,7 +1323,9 @@
       ratTurretCooldown -= dt;
       if (ratTurretCooldown <= 0) {
         let closestEnemy = null, closestDist = 240;
-        enemies.forEach(e => { const d = e.x - RAT_CASTLE_X; if (d > 0 && d < closestDist) { closestDist = d; closestEnemy = e; } });
+        // Rat turret targets porcs: allies if porc player, enemies if rat player
+        var ratTargets = gameState.faction==='porcupines' ? allies : enemies;
+        ratTargets.forEach(e => { const d = e.x - RAT_CASTLE_X; if (d > 0 && d < closestDist) { closestDist = d; closestEnemy = e; } });
         if (closestEnemy) {
           ratTurretCooldown = 1.6;
           AudioEngine.playTurretShot();
@@ -1334,7 +1336,9 @@
       }
       porcTurretCooldown -= dt;
       if (porcTurretCooldown <= 0) {
-        const attackers = allies.filter(a => (PORC_CASTLE_X - a.x) > 0 && (PORC_CASTLE_X - a.x) < porcRange);
+        // Porc turret targets rats: enemies if porc player, allies if rat player
+        var porcTargets = gameState.faction==='porcupines' ? enemies : allies;
+        const attackers = porcTargets.filter(a => (PORC_CASTLE_X - a.x) > 0 && (PORC_CASTLE_X - a.x) < porcRange);
         if (attackers.length > 0) {
           porcTurretCooldown = 1.8;
           AudioEngine.playTurretShot();
@@ -2020,7 +2024,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v52';
+  var PAGE_VERSION = 'v53';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
