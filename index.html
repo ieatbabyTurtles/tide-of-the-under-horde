@@ -176,7 +176,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v61</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v62</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -922,7 +922,7 @@
       });
     }
     function showStoryBriefing(faction, stage){
-      gameState.faction=faction;ACTIVE_FACTION=faction;syncStateToUrl();
+      gameState.faction=faction;syncStateToUrl();
       var stories=FACTION_STORIES[faction]||FACTION_STORIES.rats;
       var text=stories[Math.max(0,Math.min(9,stage-1))];
       document.getElementById('story-title').textContent=(faction==='porcupines'?'PORCUPINE BARONY':'RAT SWARM')+' — STAGE '+stage;
@@ -930,7 +930,7 @@
       document.getElementById('story-modal').style.display='flex';
       document.getElementById('btn-story-continue').onclick=function(){
         document.getElementById('story-modal').style.display='none';
-        gameState.faction=faction;ACTIVE_FACTION=faction;syncStateToUrl();
+        gameState.faction=faction;syncStateToUrl();
         startGameplay(stage);
       };
     }
@@ -965,11 +965,9 @@
       })(s);
     }
     function startGameplay(level){level=Math.max(1,Math.min(10,parseInt(level,10)||1));gameState.currentStage=level;syncStateToUrl();menuScreen.style.display='none';missionModal.style.display='none';settingsModal.style.display='none';resetModal.style.display='none';resultModal.style.display='none';howtoModal.style.display='none';upgradeModal.style.display='none';document.getElementById('faction-modal').style.display='none';document.getElementById('story-modal').style.display='none';setupStage(level);isGameRunning=true;AudioEngine.init();AudioEngine.startGameBGM();}
-    var ACTIVE_FACTION='rats';
     function setupStage(lvl){
       currentStage=lvl;allies=[];enemies=[];particles=[];floatingTexts=[];activeTurretShots=[];ambientArcProjectiles=[];biomass=20;
-      gameState.faction=ACTIVE_FACTION;
-      var isPorcPlayer=ACTIVE_FACTION==='porcupines';
+      var isPorcPlayer=gameState.faction==='porcupines';
       // Faction-aware positions: player defends their own castle, attacks the enemy's
       var playerCastleX=isPorcPlayer?PORC_CASTLE_X:RAT_CASTLE_X;
       var enemyCastleX=isPorcPlayer?RAT_CASTLE_X:PORC_CASTLE_X;
@@ -1014,7 +1012,7 @@
       document.getElementById('rat-base-fill').style.width=Math.max(0,ratBaseHp/maxRatBaseHp*100)+'%';
       document.getElementById('porc-base-fill').style.width=Math.max(0,porcBaseHp/maxPorcBaseHp*100)+'%';
       // Base bar colors: player's base green, enemy's red
-      var isPorcP3=ACTIVE_FACTION==='porcupines';
+      var isPorcP3=gameState.faction==='porcupines';
       document.getElementById('rat-base-fill').style.background=isPorcP3?'linear-gradient(90deg,#f17061,#b92e29)':'linear-gradient(90deg,#2f9d53,#86dc63)';
       document.getElementById('porc-base-fill').style.background=isPorcP3?'linear-gradient(90deg,#2f9d53,#86dc63)':'linear-gradient(90deg,#f17061,#b92e29)';
       cardScurrier.disabled=biomass<10||!isGameRunning||isGameOver;
@@ -1406,23 +1404,23 @@
           if (a.garrison != null) {
             const d = Math.hypot(dx, dy);
             if (d < minDist) { minDist = d; target = e; }
-          } else if (dx * (ACTIVE_FACTION==='porcupines' ? -1 : 1) > 0 && Math.abs(dx) < minDist && Math.abs(dy) < 38) {
+          } else if (dx * (gameState.faction==='porcupines' ? -1 : 1) > 0 && Math.abs(dx) < minDist && Math.abs(dy) < 38) {
             minDist = Math.abs(dx); target = e;
           }
         });
 
-        const distToBase = ACTIVE_FACTION==='porcupines' ? a.x - RAT_CASTLE_X : PORC_CASTLE_X - a.x;
+        const distToBase = gameState.faction==='porcupines' ? a.x - RAT_CASTLE_X : PORC_CASTLE_X - a.x;
         const targetBase = (distToBase <= a.range + 8) && a.garrison == null;
 
         if (!target && !targetBase) {
           // Porc defense mode: hold near citadel, don't march west
-          var isPorcDefense = ACTIVE_FACTION==='porcupines';
+          var isPorcDefense = gameState.faction==='porcupines';
           // Direction: rats move east (+1), porcs move west (-1) [offensive] / hold [defensive]
           var dir = isPorcDefense ? 0 : 1; // 0 = hold position for porc defense
           // Pause to capture: if on a cleared point not owned by our faction, hold position
           // (if defenders remain, keep advancing to engage them instead of standing in range)
           // Note: cp.owner uses 'porcs', gameState.faction uses 'porcupines'
-          var myOwner = ACTIVE_FACTION==='porcupines' ? 'porcs' : 'rats';
+          var myOwner = gameState.faction==='porcupines' ? 'porcs' : 'rats';
           var onUnownedPoint = false;
           for (var cpi = 0; cpi < capturePoints.length; cpi++) {
             var cp = capturePoints[cpi];
@@ -1493,12 +1491,12 @@
         e.attackCooldown=Math.max(0,e.attackCooldown-dt);e.attackAnim=Math.max(0,e.attackAnim-dt*4);var target=null,min=e.range;
         allies.forEach(function(a){
           if(e.garrison!=null){var gd=Math.hypot(e.x-a.x,e.y-a.y);if(gd<min){min=gd;target=a;}}
-          else{var dx=e.x-a.x;var fwd=dx*(ACTIVE_FACTION==='porcupines'?1:-1);if(fwd>=-3&&fwd<min&&Math.abs(a.y-e.y)<35){min=fwd;target=a;}}
+          else{var dx=e.x-a.x;var fwd=dx*(gameState.faction==='porcupines'?1:-1);if(fwd>=-3&&fwd<min&&Math.abs(a.y-e.y)<35){min=fwd;target=a;}}
         });
         if(e.raidPoint!=null&&capturePoints[e.raidPoint]&&capturePoints[e.raidPoint].owner==='porcs')e.raidPoint=null; // point taken, resume push
         // Enemy direction: porcs (vs rats) move west, rats (vs porcs) move east
-        var eDir = ACTIVE_FACTION==='porcupines' ? 1 : -1;
-        var eTargetBaseX = ACTIVE_FACTION==='porcupines' ? PORC_CASTLE_X : RAT_CASTLE_X;
+        var eDir = gameState.faction==='porcupines' ? 1 : -1;
+        var eTargetBaseX = gameState.faction==='porcupines' ? PORC_CASTLE_X : RAT_CASTLE_X;
         var targetBase=Math.abs(e.x-eTargetBaseX)<=e.range&&e.garrison==null&&e.raidPoint==null;
         if(!target&&!targetBase){
           if(e.garrison!=null&&capturePoints[e.garrison]){
@@ -2002,7 +2000,7 @@
         ctx.restore();
       });
 
-      var isPorcP2=ACTIVE_FACTION==='porcupines';
+      var isPorcP2=gameState.faction==='porcupines';
       // Allies: green bars. Porcs face west (no flip), rats face east.
       allies.forEach(a => { if(isPorcP2){ drawSpritePorc(a, false, true); } else { drawSpriteRat(a, true); } });
       // Enemies: red bars. Rats face east, porcs face west.
@@ -2034,7 +2032,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v61';
+  var PAGE_VERSION = 'v62';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
