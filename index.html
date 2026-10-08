@@ -176,7 +176,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v39</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v40</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -1555,7 +1555,7 @@
       var cxf=x-14,cyf=y-40;
       if(timg&&timg.complete&&timg.naturalWidth){
         var ttw=95,tth=ttw*timg.naturalHeight/timg.naturalWidth;
-        ctx.save();ctx.translate(cxf,cyf);ctx.rotate(porcAimAngle);
+        ctx.save();ctx.translate(cxf,cyf);ctx.rotate(porcAimAngle-Math.PI);
         ctx.drawImage(timg,-ttw/2,-tth/2,ttw,tth);ctx.restore();
       }
       ctx.fillStyle='#fca5a5';ctx.font='bold 9px sans-serif';
@@ -1954,7 +1954,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v39';
+  var PAGE_VERSION = 'v40';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
