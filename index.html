@@ -64,7 +64,7 @@
     #save-toast { position:absolute; z-index:320; top:max(14px,env(safe-area-inset-top)); left:50%; padding:9px 16px; transform:translate(-50%,-12px); opacity:0; border:1px solid #d7ba52; border-radius:5px; background:#173521; color:#fff1ae; box-shadow:0 7px 20px rgba(0,0,0,.6); font-size:10px; font-weight:900; letter-spacing:.035em; pointer-events:none; transition:opacity .18s,transform .18s; }
     #save-toast.show { opacity:1; transform:translate(-50%,0); }
 
-    #mission-modal,#settings-modal,#reset-modal,#result-modal,#pause-modal,#howto-modal,#upgrade-modal {
+    #mission-modal,#settings-modal,#reset-modal,#result-modal,#pause-modal,#howto-modal,#upgrade-modal,#faction-modal,#story-modal {
       position:absolute; inset:0; z-index:260; display:none; align-items:center; justify-content:center; padding:14px; background:rgba(3,9,5,.88);
     }
     .modal-box { width:min(540px,94vw); padding:18px; border:1px solid #c2a647; border-radius:8px; background:linear-gradient(155deg,#193522,#0e1d13); box-shadow:0 18px 50px #000; text-align:center; }
@@ -167,7 +167,7 @@
     <p id="menu-subtitle">PORCUPINE BARONY · TEN-STAGE VANGUARD CAMPAIGN</p>
     <div id="menu-gold" class="gold-badge">🪙 <span id="menu-gold-val">0</span> GOLD</div>
     <div class="menu-btns">
-      <button class="menu-btn" id="btn-menu-continue" type="button">START CAMPAIGN</button>
+      <button class="menu-btn" id="btn-menu-continue" type="button">CHOOSE FACTION</button>
       <button class="menu-btn secondary" id="btn-menu-howto" type="button">HOW TO PLAY</button>
       <button class="menu-btn secondary" id="btn-menu-select" type="button">MISSION SELECT</button>
       <button class="menu-btn secondary" id="btn-menu-upgrades" type="button">UPGRADES</button>
@@ -175,7 +175,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v33</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v34</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -205,6 +205,23 @@
       <p>Break each citadel in order. Warlord Thorn-Quill guards the Brute at Stage 10.</p>
       <div class="mission-grid" id="stage-grid"></div>
       <div class="modal-actions"><button class="modal-btn" id="btn-close-mission" type="button">RETURN</button></div>
+    </div>
+  </section>
+
+  <section id="faction-modal" role="dialog" aria-modal="true" aria-labelledby="faction-title">
+    <div class="modal-box" style="max-width:520px;">
+      <h2 id="faction-title">CHOOSE YOUR FACTION</h2>
+      <p>Each faction fights differently. The rats are swift; the porcupines are tough.</p>
+      <div id="faction-cards" style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;"></div>
+      <div class="modal-actions"><button class="modal-btn" id="btn-close-faction" type="button">RETURN</button></div>
+    </div>
+  </section>
+
+  <section id="story-modal" role="dialog" aria-modal="true" aria-labelledby="story-title">
+    <div class="modal-box" style="max-width:480px;">
+      <h2 id="story-title">BRIEFING</h2>
+      <p id="story-text" style="font-style:italic;line-height:1.6;"></p>
+      <div class="modal-actions"><button class="modal-btn" id="btn-story-continue" type="button">TO BATTLE</button></div>
     </div>
   </section>
 
@@ -667,7 +684,8 @@
       playWin:function(){var self=this;[261.63,329.63,392,523.25].forEach(function(f,i){self.tone(f,f,.35,'triangle',.2,'sfx',i*.1);});}
     };
 
-    var gameState={highestCleared:0,unlockedBrute:false,unlockedArcher:false,tutorialSeen:false,currentStage:1,gold:0,upgrades:{scurrier:0,archer:0,brute:0}};
+    var gameState={highestCleared:0,unlockedBrute:false,unlockedArcher:false,tutorialSeen:false,currentStage:1,gold:0,upgrades:{scurrier:0,archer:0,brute:0},
+      faction:'rats',porcHighestCleared:0,porcUnlocked:false,porcUpgrades:{gladiator:0,quillthrower:0,warlord:0},porcUnlockedWarlord:false};
     function readStateFromUrl(){
       try{
         var p=new URLSearchParams(window.location.hash.replace('#','')),s=parseInt(p.get('s'),10),c=parseInt(p.get('c'),10);
@@ -683,13 +701,23 @@
           gameState.upgrades.archer = Math.max(0, Math.min(3, parseInt(us[1], 10) || 0));
           gameState.upgrades.brute = Math.max(0, Math.min(3, parseInt(us[2], 10) || 0));
         }
+        // Faction data
+        if (p.has('f')) gameState.faction = p.get('f') === 'p' ? 'porcupines' : 'rats';
+        if (p.has('ps')) gameState.porcHighestCleared = Math.max(0, Math.min(10, parseInt(p.get('ps'), 10) || 0));
+        gameState.porcUnlocked = p.get('pu') === '1' || gameState.highestCleared >= 10;
+        if (p.has('pu2')) { var pus = p.get('pu2') || '000';
+          gameState.porcUpgrades.gladiator = Math.max(0, Math.min(3, parseInt(pus[0], 10) || 0));
+          gameState.porcUpgrades.quillthrower = Math.max(0, Math.min(3, parseInt(pus[1], 10) || 0));
+          gameState.porcUpgrades.warlord = Math.max(0, Math.min(3, parseInt(pus[2], 10) || 0));
+        }
+        gameState.porcUnlockedWarlord = gameState.porcHighestCleared >= 10;
       }catch(e){}
     }
     var TIDE_SAVE_KEY='tideUnderHordeSaveV1';
     function syncStateToUrl(){
       try{
-        var up=gameState.upgrades;
-        var hash=`s=${gameState.highestCleared}&a=${gameState.unlockedArcher ? 1 : 0}&b=${gameState.unlockedBrute ? 1 : 0}&t=${gameState.tutorialSeen ? 1 : 0}&c=${gameState.currentStage}&g=${gameState.gold}&u=${up.scurrier}${up.archer}${up.brute}`;
+        var up=gameState.upgrades, pup=gameState.porcUpgrades;
+        var hash=`s=${gameState.highestCleared}&a=${gameState.unlockedArcher ? 1 : 0}&b=${gameState.unlockedBrute ? 1 : 0}&t=${gameState.tutorialSeen ? 1 : 0}&c=${gameState.currentStage}&g=${gameState.gold}&u=${up.scurrier}${up.archer}${up.brute}&f=${gameState.faction === 'porcupines' ? 'p' : 'r'}&ps=${gameState.porcHighestCleared}&pu=${gameState.porcUnlocked ? 1 : 0}&pu2=${pup.gladiator}${pup.quillthrower}${pup.warlord}`;
         history.replaceState(null,'',window.location.pathname+window.location.search+'#'+hash);
         try{localStorage.setItem(TIDE_SAVE_KEY,hash);}catch(e){}
       }catch(e){}
@@ -707,7 +735,33 @@
     var canvas=document.getElementById('canvas2d'),ctx=canvas.getContext('2d'),width=0,height=0,dpr=1;
     var MAP_WIDTH=2200,RIVER_X=1100,HIGHWAY_Y=260,ROAD_HALF_WIDTH=55,RAT_CASTLE_X=140,PORC_CASTLE_X=2060;
     var SCURRY_MULT=1.15; // Rat racial bonus: passive +15% movement speed
-    var THICK_HIDE_MULT=1.08; // Porcupine racial bonus: passive +15% max HP
+    var THICK_HIDE_MULT=1.08; // Porcupine racial bonus: passive +8% max HP
+    var FACTION_STORIES={
+      rats:[
+        "The tunnels are full. Pups starve in the dark while the elders count the last of the grain, and the scouts have returned from the east with word of green fields and fat harvests. The swarm marches at dawn \u2014 not for glory, but for bread.",
+        "The first barony farm burns behind us. The porcupines fought harder than the scouts promised, and their quills found too many of our brothers. But the grain stores are full, and for the first time in a season, the pups will eat.",
+        "Word of the invasion has spread. The barony's militia now holds the river crossings, and every field we take costs blood. The elders say there is no going back \u2014 the warren would starve before winter if we returned empty-handed.",
+        "We broke their line at the ford, but the cost was terrible. The river ran dark with our dead, and the survivors lick their wounds in captured barns. Still, each step east is a step away from starvation.",
+        "The barony's champions have come \u2014 massive porcupines in war-paint, veterans of a dozen border wars. They fight for their homes, and we fight for our children's lives. There is no mercy left in either of us.",
+        "Halfway to the citadel. Our numbers thin with every battle, but the warren sends every rat old enough to hold a quill. Behind us, the captured farms feed the swarm. Ahead, the barony's heartland \u2014 and its full fury.",
+        "The porcupines have learned our ways. They burn their own fields now, denying us the harvest we came for. So we march on, hungrier than ever, toward the one prize that cannot be burned: the citadel's granaries.",
+        "The citadel's outer walls rise before us, black against the sunset. Our scouts count their ballistae and despair, but despair is a luxury we cannot afford. The swarm has come too far to turn back.",
+        "Last night the elders made the hard choice: the pups too young to fight were left in the captured farms with a handful of guards. If we fall here, the warren dies with us. If we win, they will never hunger again.",
+        "This is it \u2014 the citadel gates, the granaries beyond. Everything the swarm has suffered, every brother and sister lost in the mud of the barony, comes down to this one assault. For the warren. For the pups. For survival."
+      ],
+      porcupines:[
+        "The rats came in the night, driven by hunger, and we bled to stop them. We buried our dead in the fields they tried to steal, and the elders convened beneath the old oak. The swarm will return \u2014 unless we end it first.",
+        "The war council's decision was unanimous: we march west. Not for conquest, but for survival \u2014 the rats' warren must fall so that our pups can sleep without fear. The veterans sharpen their quills. The young ones try not to show their fear.",
+        "We cross into the ashlands the rats left behind \u2014 burned farms, gnawed bones, the wreckage of their desperate march. It is a grim reminder of what hunger can do. We will not let it happen to our own.",
+        "The first rat outposts fall quickly. They never expected us to come to them \u2014 the aggressors have never learned what it means to be prey. But the warren is deep, and the swarm is vast.",
+        "The tunnels are worse than the scouts described \u2014 a labyrinth of hunger and teeth, every shadow hiding a defender. Our champions lead the way, quills bristling, and the dark swallows the unwary. We press on. There is no other choice.",
+        "Halfway to the warren's heart. Our supply lines stretch thin across the ashlands, and the rats harry us from the shadows they know so well. The elders remind us: every step forward is a step toward a lasting peace.",
+        "We found the breeding chambers \u2014 thousands of pups, mewling in the dark. The order came down from the war council: no quarter. Some of our soldiers wept as they obeyed. This is what survival costs.",
+        "The warren's defenders fight like cornered animals now, and who can blame them? We have become the thing we feared \u2014 the invaders, the destroyers. But we remember the burned farms and the buried dead, and we do not stop.",
+        "The Rat King himself has taken the field, massive and scarred, fighting with the fury of a father defending his young. Our champions meet him quill to claw. One of them will not see the dawn.",
+        "The warren lies broken before us. The tunnels are ours, the threat is ended, and our pups will never know the fear we knew. But as the sun rises over the conquered dark, the elders wonder: what have we become?"
+      ]
+    };
     var camX=0,autoPan=true,biomass=20,maxBiomass=50,ratBaseHp=850,maxRatBaseHp=850,porcBaseHp=900,maxPorcBaseHp=900;
     var panicAvailable=true,isGameOver=false,isGameRunning=false,currentStage=1;
     var ratTurretCooldown=0,porcTurretCooldown=0,stageTime=0,bossSpawned=false,raidTimer=22,activeTurretShots=[],ambientArtilleryTimer=2.5,ambientArcProjectiles=[],allies=[],enemies=[],particles=[],floatingTexts=[],enemyWaveTimer=4;
@@ -780,13 +834,24 @@
     });
     function updateMenuState(){document.getElementById('btn-menu-continue').textContent=gameState.currentStage>1?'CONTINUE — STAGE '+gameState.currentStage:'START CAMPAIGN';document.getElementById('menu-gold-val').textContent=gameState.gold;}
     var UPGRADE_COSTS=[30,60,100];
-    var UPGRADE_UNITS=[['scurrier','🐀','SWARM RAT'],['archer','🏹','ARCHER'],['brute','🛡','BRUTE']];
-    function upgradeMult(u){return 1+(gameState.upgrades[u]||0)*0.08;}
+    function getUpgradeUnits(){
+      if(gameState.faction==='porcupines') return [['gladiator','🦔','GLADIATOR'],['quillthrower','🦔','QUILLTHROWER'],['warlord','🦔','WARLORD']];
+      return [['scurrier','🐀','SWARM RAT'],['archer','🏹','ARCHER'],['brute','🛡','BRUTE']];
+    }
+    function getUpgradeLevels(){
+      return gameState.faction==='porcupines'?gameState.porcUpgrades:gameState.upgrades;
+    }
+    function upgradeMult(u){
+      var lv=getUpgradeLevels();
+      return 1+(lv[u]||0)*0.08;
+    }
     function populateUpgradeRows(){
       document.getElementById('upgrade-gold-val').textContent=gameState.gold;
       var rows=document.getElementById('upgrade-rows');rows.textContent='';
-      UPGRADE_UNITS.forEach(function(cfg){
-        var u=cfg[0],lvl=gameState.upgrades[u]||0,maxed=lvl>=3;
+      var units=getUpgradeUnits(), levels=getUpgradeLevels();
+      document.getElementById('upgrade-title').textContent=gameState.faction==='porcupines'?'BARONY UPGRADES':'WARREN UPGRADES';
+      units.forEach(function(cfg){
+        var u=cfg[0],lvl=levels[u]||0,maxed=lvl>=3;
         var row=document.createElement('div');row.className='setting-row';
         var pips='';for(var i=0;i<3;i++)pips+='<span class="'+(i<lvl?'':'off')+'">●</span>';
         var label=document.createElement('span');label.innerHTML=cfg[1]+' '+cfg[2]+' <span class="pips">'+pips+'</span><br><span style="font-size:8px;color:#a9d7b3">+'+Math.round((upgradeMult(u)-1)*100)+'% HP & damage</span>';
@@ -794,8 +859,9 @@
         if(maxed){btn.textContent='MAX';btn.disabled=true;}
         else{var cost=UPGRADE_COSTS[lvl];btn.textContent=cost+' 🪙';btn.disabled=gameState.gold<cost;
           btn.addEventListener('click',function(){
-            if(gameState.gold<UPGRADE_COSTS[gameState.upgrades[u]]||gameState.upgrades[u]>=3)return;
-            gameState.gold-=UPGRADE_COSTS[gameState.upgrades[u]];gameState.upgrades[u]++;
+            var lv2=getUpgradeLevels();
+            if(gameState.gold<UPGRADE_COSTS[lv2[u]]||lv2[u]>=3)return;
+            gameState.gold-=UPGRADE_COSTS[lv2[u]];lv2[u]++;
             syncStateToUrl();populateUpgradeRows();updateMenuState();
           });
         }
@@ -803,27 +869,107 @@
       });
     }
     function openUpgrades(){AudioEngine.init();populateUpgradeRows();upgradeModal.style.display='flex';}
+    function populateFactionCards(){
+      var container=document.getElementById('faction-cards');container.textContent='';
+      var factions=[
+        {id:'rats',name:'RAT SWARM',icon:'🐀',racial:'SCURRY: +15% movement speed',
+         desc:'Starving and desperate, the rats invade for food and room.',
+         units:[['Scurrier','Fast melee swarmer'],['Archer','Ranged quill-thrower'],['Brute','Heavy tank (Stage 10)']],
+         upgrades:gameState.upgrades,locked:false},
+        {id:'porcupines',name:'PORCUPINE BARONY',icon:'🦔',racial:'THICK HIDE: +8% max HP',
+         desc:'Defenders turned conquerors — marching to end the rat threat.',
+         units:[['Gladiator','Fast melee fighter'],['Quillthrower','Ranged quill shooter'],['Warlord','Heavy tank (Stage 10)']],
+         upgrades:gameState.porcUpgrades,locked:!gameState.porcUnlocked}
+      ];
+      factions.forEach(function(f){
+        var card=document.createElement('div');
+        card.style.cssText='flex:1;min-width:200px;max-width:240px;background:rgba(0,0,0,0.4);border:2px solid #8b6f47;border-radius:10px;padding:14px;cursor:'+(f.locked?'not-allowed':'pointer')+';opacity:'+(f.locked?'0.55':'1');
+        var unitsHtml=f.units.map(function(u){
+          var key=u[0].toLowerCase(),lvl=f.upgrades[key]||0;
+          return '<div style="font-size:12px;margin:4px 0;">'+u[0]+' <span style="color:#f2ca55;">'+'★'.repeat(lvl)+'☆'.repeat(3-lvl)+'</span><br><span style="color:#aaa;font-size:11px;">'+u[1]+'</span></div>';
+        }).join('');
+        card.innerHTML='<div style="font-size:32px;text-align:center;">'+f.icon+'</div>'+
+          '<div style="font-weight:bold;text-align:center;margin:6px 0;">'+f.name+'</div>'+
+          '<div style="font-size:11px;color:#f2ca55;text-align:center;margin-bottom:8px;">'+f.racial+'</div>'+
+          '<div style="font-size:11px;color:#ccc;font-style:italic;margin-bottom:8px;">'+f.desc+'</div>'+unitsHtml+
+          (f.locked?'<div style="color:#ff6b6b;font-size:12px;text-align:center;margin-top:8px;">🔒 Clear Rat Stage 10 to unlock</div>':'');
+        if(!f.locked){
+          card.addEventListener('click',function(){
+            gameState.faction=f.id;syncStateToUrl();
+            document.getElementById('faction-modal').style.display='none';
+            // Show story briefing, then mission select
+            showStoryBriefing(f.id, f.id==='rats'?gameState.currentStage:gameState.porcHighestCleared+1);
+          });
+        }
+        container.appendChild(card);
+      });
+    }
+    function showStoryBriefing(faction, stage){
+      var stories=FACTION_STORIES[faction]||FACTION_STORIES.rats;
+      var text=stories[Math.max(0,Math.min(9,stage-1))];
+      document.getElementById('story-title').textContent=(faction==='porcupines'?'PORCUPINE BARONY':'RAT SWARM')+' — STAGE '+stage;
+      document.getElementById('story-text').textContent=text;
+      document.getElementById('story-modal').style.display='flex';
+      document.getElementById('btn-story-continue').onclick=function(){
+        document.getElementById('story-modal').style.display='none';
+        startGameplay(stage);
+      };
+    }
+    function updateDeployDeck(){
+      var isPorc=gameState.faction==='porcupines';
+      // Card 1: Scurrier/Gladiator (swarm x2)
+      cardScurrier.querySelector('.card-icon').textContent=isPorc?'🦔':'🐀';
+      cardScurrier.querySelector('.card-name').textContent=isPorc?'GLADIATOR ×2':'SWARM ×2';
+      cardScurrier.setAttribute('aria-label',isPorc?'Deploy two gladiators for 10 biomass':'Deploy two scurriers for 10 biomass');
+      // Card 2: Brute/Warlord (heavy)
+      var bruteUnlocked=isPorc?gameState.porcUnlockedWarlord:gameState.unlockedBrute;
+      cardBrute.querySelector('.card-icon').textContent=isPorc?'🦔':'🛡';
+      cardBrute.querySelector('.card-name').textContent=isPorc?'WARLORD':'BRUTE';
+      cardBrute.classList.toggle('locked',!bruteUnlocked);
+      // Card 3: Archer/Quillthrower (ranged)
+      var archerCard=document.getElementById('card-archer');
+      archerCard.querySelector('.card-icon').textContent=isPorc?'🦔':'🏹';
+      archerCard.querySelector('.card-name').textContent=isPorc?'QUILLTHROWER':'ARCHER';
+      var archerUnlocked=isPorc?true:gameState.unlockedArcher;
+      archerCard.classList.toggle('locked',!archerUnlocked);
+    }
     function populateMissionGrid(){
-      var grid=document.getElementById('stage-grid');grid.textContent='';var max=Math.min(10,gameState.highestCleared+1);
+      var grid=document.getElementById('stage-grid');grid.textContent='';
+      var isPorc=gameState.faction==='porcupines';
+      var cleared=isPorc?gameState.porcHighestCleared:gameState.highestCleared;
+      var max=Math.min(10,cleared+1);
+      document.getElementById('mission-title').textContent=isPorc?'THE RAT WARREN':'THE PORCUPINE BARONY';
       for(var s=1;s<=10;s++)(function(stage){
         var btn=document.createElement('button');btn.type='button';btn.className='stage-card';btn.innerHTML='STAGE '+stage+'<br><span style="font-size:6px;font-weight:700">'+stageNames[stage-1]+'</span>';
-        if(stage<=gameState.highestCleared)btn.classList.add('cleared');else if(stage===max)btn.classList.add('current');else{btn.classList.add('locked');btn.disabled=true;}
-        if(stage<=max)btn.addEventListener('click',function(){missionModal.style.display='none';startGameplay(stage);});grid.appendChild(btn);
+        if(stage<=cleared)btn.classList.add('cleared');else if(stage===max)btn.classList.add('current');else{btn.classList.add('locked');btn.disabled=true;}
+        if(stage<=max)btn.addEventListener('click',function(){missionModal.style.display='none';showStoryBriefing(gameState.faction,stage);});grid.appendChild(btn);
       })(s);
     }
-    function startGameplay(level){level=Math.max(1,Math.min(10,parseInt(level,10)||1));gameState.currentStage=level;syncStateToUrl();menuScreen.style.display='none';missionModal.style.display='none';settingsModal.style.display='none';resetModal.style.display='none';resultModal.style.display='none';howtoModal.style.display='none';upgradeModal.style.display='none';setupStage(level);isGameRunning=true;AudioEngine.init();AudioEngine.startGameBGM();}
+    function startGameplay(level){level=Math.max(1,Math.min(10,parseInt(level,10)||1));gameState.currentStage=level;syncStateToUrl();menuScreen.style.display='none';missionModal.style.display='none';settingsModal.style.display='none';resetModal.style.display='none';resultModal.style.display='none';howtoModal.style.display='none';upgradeModal.style.display='none';document.getElementById('faction-modal').style.display='none';document.getElementById('story-modal').style.display='none';setupStage(level);isGameRunning=true;AudioEngine.init();AudioEngine.startGameBGM();}
     function setupStage(lvl){
-      currentStage=lvl;allies=[];enemies=[];particles=[];floatingTexts=[];activeTurretShots=[];ambientArcProjectiles=[];biomass=20;ratBaseHp=maxRatBaseHp;maxPorcBaseHp=800+lvl*120;porcBaseHp=maxPorcBaseHp;panicAvailable=true;isGameOver=false;camX=0;stageTime=0;bossSpawned=false;raidTimer=(lvl===1?55:45);enemyWaveTimer=(lvl === 1 ? 8.0 : 5.0);ratTurretCooldown=.7;porcTurretCooldown=1.1;ambientArtilleryTimer=2;
+      currentStage=lvl;allies=[];enemies=[];particles=[];floatingTexts=[];activeTurretShots=[];ambientArcProjectiles=[];biomass=20;
+      var isPorcPlayer=gameState.faction==='porcupines';
+      // Faction-aware positions: player defends their own castle, attacks the enemy's
+      var playerCastleX=isPorcPlayer?PORC_CASTLE_X:RAT_CASTLE_X;
+      var enemyCastleX=isPorcPlayer?RAT_CASTLE_X:PORC_CASTLE_X;
+      // Base HP: player's base vs enemy's base
+      if(isPorcPlayer){ porcBaseHp=maxPorcBaseHp=800+lvl*120; ratBaseHp=maxRatBaseHp; }
+      else { ratBaseHp=maxRatBaseHp; maxPorcBaseHp=800+lvl*120; porcBaseHp=maxPorcBaseHp; }
+      window.PLAYER_CASTLE_X=playerCastleX; window.ENEMY_CASTLE_X=enemyCastleX; window.IS_PORC_PLAYER=isPorcPlayer;
+      panicAvailable=true;isGameOver=false;camX=isPorcPlayer?MAP_WIDTH-width:0;stageTime=0;bossSpawned=false;raidTimer=(lvl===1?55:45);enemyWaveTimer=(lvl === 1 ? 8.0 : 5.0);ratTurretCooldown=.7;porcTurretCooldown=1.1;ambientArtilleryTimer=2;
       capturePoints=[
-        {x:650,y:HIGHWAY_Y,name:'WARREN POINT',owner:'rats',progress:0,progFaction:null},
+        {x:650,y:HIGHWAY_Y,name:'WARREN POINT',owner:isPorcPlayer?'porcs':'rats',progress:0,progFaction:null},
         {x:1100,y:HIGHWAY_Y,name:'JUDGMENT CROWN',owner:null,progress:0,progFaction:null},
-        {x:1550,y:HIGHWAY_Y,name:'BARONY POINT',owner:'porcs',progress:0,progFaction:null}
+        {x:1550,y:HIGHWAY_Y,name:'BARONY POINT',owner:isPorcPlayer?'rats':'porcs',progress:0,progFaction:null}
       ];
-      spawnGarrison(0,'rats');spawnGarrison(2,'porcs');updatePointPips();
+      // Garrisons: player faction holds their side, enemy holds theirs
+      spawnGarrison(0,isPorcPlayer?'porcs':'rats');spawnGarrison(2,isPorcPlayer?'rats':'porcs');updatePointPips();
       hornTimer = 0; hornCooldown = 0; shockwaves = []; rangedShots = [];
       ratAimAngle = 0; porcAimAngle = Math.PI;
+      // Update UI labels for faction
       document.getElementById('card-archer').classList.toggle('locked', !gameState.unlockedArcher);
       document.getElementById('mission-badge').textContent=lvl+'/10';document.getElementById('enemy-base-name').textContent=stageNames[lvl-1];updateHUD();showBanner('STAGE '+lvl+' · '+stageNames[lvl-1]);
+      updateDeployDeck();
       showTutorialStep(-1); // tutorial is opt-in from the main menu, never auto-shown
     }
     function updateHUD(){
@@ -848,7 +994,8 @@
     function openSettings(){AudioEngine.init();settingsWasRunning=isGameRunning;isGameRunning=false;updateHUD();settingsModal.style.display='flex';}
     function closeSettings(){settingsModal.style.display='none';isGameRunning=settingsWasRunning;settingsWasRunning=false;updateHUD();if(settingsReturn==='pause'){settingsReturn=null;pauseModal.style.display='flex';}}
     function setToggleState(button,enabled){button.textContent=enabled?'ON':'OFF';button.classList.toggle('off',!enabled);button.setAttribute('aria-pressed',String(enabled));}
-    document.getElementById('btn-menu-continue').addEventListener('click',function(){startGameplay(gameState.currentStage);});
+    document.getElementById('btn-menu-continue').addEventListener('click',function(){AudioEngine.init();populateFactionCards();document.getElementById('faction-modal').style.display='flex';});
+    document.getElementById('btn-close-faction').addEventListener('click',function(){document.getElementById('faction-modal').style.display='none';});
     document.getElementById('btn-menu-select').addEventListener('click',function(){AudioEngine.init();populateMissionGrid();missionModal.style.display='flex';});
     document.getElementById('btn-menu-howto').addEventListener('click',function(){AudioEngine.init();howtoModal.style.display='flex';});
     document.getElementById('btn-menu-upgrades').addEventListener('click',openUpgrades);
@@ -895,15 +1042,16 @@
     document.getElementById('btn-result-menu').addEventListener('click',function(){resultAction=null;resultModal.style.display='none';isGameRunning=false;updateHUD();updateMenuState();menuScreen.style.display='flex';AudioEngine.startMenuBGM();});
     document.getElementById('btn-cam-pan').addEventListener('click',function(){autoPan=!autoPan;this.textContent=autoPan?'CAM AUTO':'CAM FREE';this.setAttribute('aria-pressed',String(autoPan));});
 
-    cardScurrier.addEventListener('pointerdown',function(e){e.stopPropagation();AudioEngine.init();if(biomass<10||!isGameRunning)return;biomass-=10;AudioEngine.playRatSummon();spawnRatUnit('scurrier');spawnRatUnit('scurrier');updateHUD();});
-    cardBrute.addEventListener('pointerdown',function(e){e.stopPropagation();AudioEngine.init();if(!gameState.unlockedBrute||biomass<30||!isGameRunning)return;biomass-=30;AudioEngine.playRatSummon();spawnRatUnit('brute');updateHUD();});
+    cardScurrier.addEventListener('pointerdown',function(e){e.stopPropagation();AudioEngine.init();if(biomass<10||!isGameRunning)return;biomass-=10;AudioEngine.playRatSummon();var t=gameState.faction==='porcupines'?'gladiator':'scurrier';spawnPlayerUnit(t);spawnPlayerUnit(t);updateHUD();});
+    cardBrute.addEventListener('pointerdown',function(e){e.stopPropagation();AudioEngine.init();var unlocked=gameState.faction==='porcupines'?gameState.porcUnlockedWarlord:gameState.unlockedBrute;if(!unlocked||biomass<30||!isGameRunning)return;biomass-=30;AudioEngine.playRatSummon();spawnPlayerUnit(gameState.faction==='porcupines'?'warlord':'brute');updateHUD();});
     document.getElementById('card-archer').addEventListener('pointerdown', (e) => {
       e.stopPropagation();
       AudioEngine.init();
-      if (!gameState.unlockedArcher || biomass < 15) return;
+      var unlocked=gameState.faction==='porcupines'?true:gameState.unlockedArcher;
+      if (!unlocked || biomass < 15) return;
       biomass -= 15;
       AudioEngine.playRatSummon();
-      spawnRatUnit('archer');
+      spawnPlayerUnit(gameState.faction==='porcupines'?'quillthrower':'archer');
       updateHUD();
     });
     document.getElementById('horn-btn').addEventListener('click', () => {
@@ -941,6 +1089,24 @@
         allies.push({type:type,x:RAT_CASTLE_X+20,y:roadY,hp:260*mult,maxHp:260*mult,dmg:28*mult,range:34,speed:38*SCURRY_MULT,reflect:.25,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
       }
     }
+    function spawnPorcUnit(type){
+      var roadY=HIGHWAY_Y+(Math.random()*40-20);
+      var vet=1+(currentStage-1)*0.04;
+      var upg=1+((gameState.porcUpgrades[type]||0)*0.08);
+      var mult=vet*upg;
+      var hpM=THICK_HIDE_MULT;
+      if(type==='gladiator'){
+        allies.push({type:type,x:PORC_CASTLE_X-40,y:roadY,hp:85*mult*hpM,maxHp:85*mult*hpM,dmg:14*mult,range:30,speed:50,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
+      } else if(type==='quillthrower'){
+        allies.push({type:type,x:PORC_CASTLE_X-40,y:roadY,hp:60*mult*hpM,maxHp:60*mult*hpM,dmg:13*mult,range:135,speed:50,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
+      } else { // warlord
+        allies.push({type:type,x:PORC_CASTLE_X-50,y:roadY,hp:450*mult*hpM,maxHp:450*mult*hpM,dmg:32*mult,range:46,speed:32,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
+      }
+    }
+    function spawnPlayerUnit(type){
+      if(gameState.faction==='porcupines') spawnPorcUnit(type);
+      else spawnRatUnit(type);
+    }
     function spawnGarrison(pi,faction){
       var p=capturePoints[pi];if(!p)return;
       for(var i=0;i<2;i++){
@@ -968,6 +1134,26 @@
       else e={type:type,x:PORC_CASTLE_X-50,y:y,hp:450*hpScale*THICK_HIDE_MULT,maxHp:450*hpScale*THICK_HIDE_MULT,dmg:32*dmgScale,range:46,speed:32};
       e.attackCooldown=0;e.walkCycle=Math.random()*5;e.attackAnim=0;enemies.push(e);
     }
+    function spawnRatEnemy(type,forceBoss){
+      // AI-controlled rats when player is porcupines: spawn from left, march right
+      var y=HIGHWAY_Y+(Math.random()*40-20),boss=forceBoss===true;
+      var hpScale=1+(currentStage-1)*.10,dmgScale=1+(currentStage-1)*.085,e;
+      var spd=SCURRY_MULT;
+      if(type==='scurrier')e={type:type,x:RAT_CASTLE_X+40,y:y,hp:65*hpScale,maxHp:65*hpScale,dmg:14*dmgScale,range:28,speed:70*spd};
+      else if(type==='archer')e={type:type,x:RAT_CASTLE_X+40,y:y,hp:50*hpScale,maxHp:50*hpScale,dmg:12*dmgScale,range:140,speed:55*spd};
+      else if(boss)e={type:type,isBoss:true,x:RAT_CASTLE_X+20,y:y,hp:260*hpScale,maxHp:260*hpScale,dmg:28*dmgScale,range:34,speed:38*spd};
+      else e={type:type,x:RAT_CASTLE_X+20,y:y,hp:260*hpScale,maxHp:260*hpScale,dmg:28*dmgScale,range:34,speed:38*spd};
+      e.attackCooldown=0;e.walkCycle=Math.random()*5;e.attackAnim=0;enemies.push(e);
+    }
+    function spawnEnemyUnit(type,forceBoss){
+      if(gameState.faction==='porcupines'){
+        // AI plays rats: map porc types to rat equivalents
+        var ratType=type==='gladiator'?'scurrier':type==='champion'?'scurrier':type==='warlord'?'brute':type;
+        spawnRatEnemy(ratType,forceBoss);
+      } else {
+        spawnPorcupineEnemy(type,forceBoss);
+      }
+    }
     function updatePointPips(){
       var el=document.getElementById('point-pips');if(!el)return;el.textContent='';
       var colors={rats:'#b45309',porcs:'#b91c1c'};
@@ -982,15 +1168,26 @@
     function showResult(title,copy,label,action){document.getElementById('result-title').textContent=title;document.getElementById('result-copy').textContent=copy;document.getElementById('btn-result').textContent=label;resultAction=action;resultModal.style.display='flex';}
     function awardGold(n){gameState.gold+=n;syncStateToUrl();updateMenuState();}
     function handleVictory(){
-      isGameOver=true;isGameRunning=false;AudioEngine.playWin();gameState.highestCleared=Math.max(gameState.highestCleared,currentStage);
-      if (currentStage === 2 && !gameState.unlockedArcher) {
+      isGameOver=true;isGameRunning=false;AudioEngine.playWin();
+      var isPorc=gameState.faction==='porcupines';
+      if(isPorc){
+        gameState.porcHighestCleared=Math.max(gameState.porcHighestCleared,currentStage);
+        if(currentStage===10)gameState.porcUnlockedWarlord=true;
+      } else {
+        gameState.highestCleared=Math.max(gameState.highestCleared,currentStage);
+        if(currentStage===10){gameState.unlockedBrute=true;gameState.porcUnlocked=true;}
+      }
+      if (currentStage === 2 && !gameState.unlockedArcher && !isPorc) {
         gameState.unlockedArcher = true;
       }
-      if(currentStage===10)gameState.unlockedBrute=true;
       var goldEarned=15+5*currentStage;awardGold(goldEarned);
       syncStateToUrl();updateMenuState();showSaveToast();
-      if(currentStage===10){showResult('BARONY BROKEN','Warlord Thorn-Quill is defeated. The Quill-Plated Brute is now unlocked in your deck. +'+goldEarned+' gold.','RETURN TO CAMPAIGN',function(){menuScreen.style.display='flex';AudioEngine.startMenuBGM();});}
-      else{var next=currentStage+1;showResult('STAGE SECURED',stageNames[currentStage-1]+' has fallen. Stage '+next+' is now open. +'+goldEarned+' gold.','ADVANCE',function(){startGameplay(next);});}
+      if(currentStage===10){
+        var title=isPorc?'WARREN BROKEN':'BARONY BROKEN';
+        var desc=isPorc?'The Rat King is defeated. The Warlord is now unlocked in your deck. +'+goldEarned+' gold.':'Warlord Thorn-Quill is defeated. The Quill-Plated Brute is now unlocked in your deck. +'+goldEarned+' gold.';
+        showResult(title,desc,'RETURN TO CAMPAIGN',function(){menuScreen.style.display='flex';AudioEngine.startMenuBGM();});
+      }
+      else{var next=currentStage+1;showResult('STAGE SECURED',stageNames[currentStage-1]+' has fallen. Stage '+next+' is now open. +'+goldEarned+' gold.','ADVANCE',function(){showStoryBriefing(gameState.faction,next);});}
       updateHUD();
     }
     function handleDefeat(){isGameOver=true;isGameRunning=false;awardGold(5);showResult('WARREN SHATTERED','The Under-Warren fell beneath the quill assault. +5 gold for the fallen. Regroup and try again.','RETRY',function(){startGameplay(currentStage);});updateHUD();}
@@ -1024,7 +1221,7 @@
       enemyWaveTimer-=dt;if(enemyWaveTimer<=0){
         enemyWaveTimer = Math.max(3.2, 8.2 - currentStage * 0.32);
         if (currentStage === 10 && !bossSpawned && stageTime > 20) {
-          spawnPorcupineEnemy('warlord', true); bossSpawned = true; // one boss, then normal warlords
+          spawnEnemyUnit('warlord', true); bossSpawned = true; // one boss, then normal warlords
         } else {
           const r = Math.random();
           const warlordCh = currentStage >= 5 ? (currentStage === 10 ? 0.08 : 0.18) : 0;
@@ -1032,7 +1229,7 @@
           let pick = 'gladiator';
           if (warlordCh > 0 && r > 1 - warlordCh) pick = 'warlord';
           else if (champCh > 0 && r > 1 - warlordCh - champCh) pick = 'champion';
-          spawnPorcupineEnemy(pick);
+          spawnEnemyUnit(pick);
         }
       }
 
@@ -1041,14 +1238,16 @@
       if(raidTimer<=0){
         raidTimer=45;
         var raidTarget=-1;
-        if(capturePoints[1]&&capturePoints[1].owner!=='porcs')raidTarget=1;
-        else if(capturePoints[0]&&capturePoints[0].owner!=='porcs')raidTarget=0;
+        var aiFaction=gameState.faction==='porcupines'?'rats':'porcs';
+        var aiPointIdx=gameState.faction==='porcupines'?2:0; // AI's home point
+        if(capturePoints[1]&&capturePoints[1].owner!==aiFaction)raidTarget=1;
+        else if(capturePoints[aiPointIdx]&&capturePoints[aiPointIdx].owner!==aiFaction)raidTarget=aiPointIdx;
         if(raidTarget>=0){
           for(var ri=0;ri<2;ri++){
-            spawnPorcupineEnemy('gladiator');
+            spawnEnemyUnit('gladiator');
             enemies[enemies.length-1].raidPoint=raidTarget;
           }
-          showBanner('PORCUPINE RAIDERS SIGHTED');
+          showBanner(aiFaction==='rats'?'RAT RAIDERS SIGHTED':'PORCUPINE RAIDERS SIGHTED');
         }
       }
 
@@ -1225,7 +1424,10 @@
       for(var ei=enemies.length-1;ei>=0;ei--)if(enemies[ei].hp<=0){AudioEngine.playPorcupineDeath();biomass=Math.min(maxBiomass,biomass+3);enemies.splice(ei,1);}
       for(var pi=particles.length-1;pi>=0;pi--){var p=particles[pi];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=95*dt;p.life-=dt;if(p.life<=0)particles.splice(pi,1);}
       for(var fi=floatingTexts.length-1;fi>=0;fi--){var ft=floatingTexts[fi];ft.y-=25*dt;ft.life-=dt;if(ft.life<=0)floatingTexts.splice(fi,1);}
-      if(porcBaseHp<=0)handleVictory();else if(ratBaseHp<=0)handleDefeat();
+      var isPorcP=gameState.faction==='porcupines';
+      var enemyBaseDown=isPorcP?ratBaseHp<=0:porcBaseHp<=0;
+      var playerBaseDown=isPorcP?porcBaseHp<=0:ratBaseHp<=0;
+      if(enemyBaseDown)handleVictory();else if(playerBaseDown)handleDefeat();
     }
 
     // 1. Clean, Vibrant Sunny Woodland (No background fighting blobs, no lollipop trees)
@@ -1722,7 +1924,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v33';
+  var PAGE_VERSION = 'v34';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
