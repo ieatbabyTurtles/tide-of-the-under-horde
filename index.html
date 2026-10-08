@@ -167,7 +167,8 @@
     <p id="menu-subtitle">PORCUPINE BARONY · TEN-STAGE VANGUARD CAMPAIGN</p>
     <div id="menu-gold" class="gold-badge">🪙 <span id="menu-gold-val">0</span> GOLD</div>
     <div class="menu-btns">
-      <button class="menu-btn" id="btn-menu-continue" type="button">CHOOSE FACTION</button>
+      <button class="menu-btn" id="btn-menu-continue" type="button">NEW GAME</button>
+      <button class="menu-btn secondary" id="btn-menu-factions" type="button" style="display:none">SWITCH FACTION</button>
       <button class="menu-btn secondary" id="btn-menu-howto" type="button">HOW TO PLAY</button>
       <button class="menu-btn secondary" id="btn-menu-select" type="button">MISSION SELECT</button>
       <button class="menu-btn secondary" id="btn-menu-upgrades" type="button">UPGRADES</button>
@@ -175,7 +176,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v35</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v36</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -832,7 +833,19 @@
       isGameRunning = false; updateHUD(); updateMenuState();
       menuScreen.style.display = 'flex'; AudioEngine.startMenuBGM();
     });
-    function updateMenuState(){document.getElementById('btn-menu-continue').textContent=gameState.currentStage>1?'CONTINUE — STAGE '+gameState.currentStage:'START CAMPAIGN';document.getElementById('menu-gold-val').textContent=gameState.gold;}
+    function currentFactionStage(){return gameState.faction==='porcupines'?Math.min(10,gameState.porcHighestCleared+1):Math.min(10,gameState.highestCleared+1);}
+    function hasStartedAnything(){return gameState.highestCleared>0||gameState.porcHighestCleared>0;}
+    function updateMenuState(){
+      var btn=document.getElementById('btn-menu-continue');
+      if(!hasStartedAnything()){btn.textContent='NEW GAME';}
+      else{
+        var st=currentFactionStage();
+        var fname=gameState.faction==='porcupines'?'PORCUPINES':'RATS';
+        btn.textContent='CONTINUE — '+fname+' STAGE '+st;
+      }
+      document.getElementById('menu-gold-val').textContent=gameState.gold;
+      var sw=document.getElementById('btn-menu-factions');if(sw)sw.style.display=gameState.porcUnlocked?'':'none';
+    }
     var UPGRADE_COSTS=[30,60,100];
     function getUpgradeUnits(){
       if(gameState.faction==='porcupines') return [['gladiator','🦔','GLADIATOR'],['quillthrower','🦔','QUILLTHROWER'],['warlord','🦔','WARLORD']];
@@ -895,10 +908,11 @@
           (f.locked?'<div style="color:#ff6b6b;font-size:12px;text-align:center;margin-top:8px;">🔒 Clear Rat Stage 10 to unlock</div>':'');
         if(!f.locked){
           card.addEventListener('click',function(){
-            gameState.faction=f.id;syncStateToUrl();
+            gameState.faction=f.id;syncStateToUrl();updateMenuState();
             document.getElementById('faction-modal').style.display='none';
-            // Show story briefing, then mission select
-            showStoryBriefing(f.id, f.id==='rats'?gameState.currentStage:gameState.porcHighestCleared+1);
+            // Start at this faction's current stage with story briefing
+            var st=f.id==='porcupines'?Math.min(10,gameState.porcHighestCleared+1):Math.min(10,gameState.highestCleared+1);
+            showStoryBriefing(f.id, st);
           });
         }
         container.appendChild(card);
@@ -994,9 +1008,14 @@
     function openSettings(){AudioEngine.init();settingsWasRunning=isGameRunning;isGameRunning=false;updateHUD();settingsModal.style.display='flex';}
     function closeSettings(){settingsModal.style.display='none';isGameRunning=settingsWasRunning;settingsWasRunning=false;updateHUD();if(settingsReturn==='pause'){settingsReturn=null;pauseModal.style.display='flex';}}
     function setToggleState(button,enabled){button.textContent=enabled?'ON':'OFF';button.classList.toggle('off',!enabled);button.setAttribute('aria-pressed',String(enabled));}
-    document.getElementById('btn-menu-continue').addEventListener('click',function(){AudioEngine.init();populateFactionCards();document.getElementById('faction-modal').style.display='flex';});
+    document.getElementById('btn-menu-continue').addEventListener('click',function(){
+      AudioEngine.init();
+      if(!hasStartedAnything()){populateFactionCards();document.getElementById('faction-modal').style.display='flex';}
+      else{showStoryBriefing(gameState.faction,currentFactionStage());}
+    });
     document.getElementById('btn-close-faction').addEventListener('click',function(){document.getElementById('faction-modal').style.display='none';});
     document.getElementById('btn-menu-select').addEventListener('click',function(){AudioEngine.init();populateMissionGrid();missionModal.style.display='flex';});
+    document.getElementById('btn-menu-factions').addEventListener('click',function(){AudioEngine.init();populateFactionCards();document.getElementById('faction-modal').style.display='flex';});
     document.getElementById('btn-menu-howto').addEventListener('click',function(){AudioEngine.init();howtoModal.style.display='flex';});
     document.getElementById('btn-menu-upgrades').addEventListener('click',openUpgrades);
     document.getElementById('btn-close-upgrade').addEventListener('click',function(){upgradeModal.style.display='none';});
@@ -1931,7 +1950,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v35';
+  var PAGE_VERSION = 'v36';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
