@@ -175,7 +175,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v34</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v35</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -1094,13 +1094,14 @@
       var vet=1+(currentStage-1)*0.04;
       var upg=1+((gameState.porcUpgrades[type]||0)*0.08);
       var mult=vet*upg;
-      var hpM=THICK_HIDE_MULT;
+      var hpM=THICK_HIDE_MULT*1.3; // Thick Hide + war-fervor toughness (porc campaign balance)
+      var dmgM=1.3, spdM=1.3; // war-fervor: porcs fight harder/faster on the offensive
       if(type==='gladiator'){
-        allies.push({type:type,x:PORC_CASTLE_X-40,y:roadY,hp:85*mult*hpM,maxHp:85*mult*hpM,dmg:14*mult,range:30,speed:50,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
+        allies.push({type:type,x:PORC_CASTLE_X-40,y:roadY,hp:85*mult*hpM,maxHp:85*mult*hpM,dmg:14*mult*dmgM,range:30,speed:Math.round(50*spdM),attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
       } else if(type==='quillthrower'){
-        allies.push({type:type,x:PORC_CASTLE_X-40,y:roadY,hp:60*mult*hpM,maxHp:60*mult*hpM,dmg:13*mult,range:135,speed:50,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
+        allies.push({type:type,x:PORC_CASTLE_X-40,y:roadY,hp:60*mult*hpM,maxHp:60*mult*hpM,dmg:13*mult*dmgM,range:135,speed:Math.round(50*spdM),attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
       } else { // warlord
-        allies.push({type:type,x:PORC_CASTLE_X-50,y:roadY,hp:450*mult*hpM,maxHp:450*mult*hpM,dmg:32*mult,range:46,speed:32,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
+        allies.push({type:type,x:PORC_CASTLE_X-50,y:roadY,hp:450*mult*hpM,maxHp:450*mult*hpM,dmg:32*mult*dmgM,range:46,speed:Math.round(32*spdM),attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
       }
     }
     function spawnPlayerUnit(type){
@@ -1141,7 +1142,7 @@
       var spd=SCURRY_MULT;
       if(type==='scurrier')e={type:type,x:RAT_CASTLE_X+40,y:y,hp:65*hpScale,maxHp:65*hpScale,dmg:14*dmgScale,range:28,speed:70*spd};
       else if(type==='archer')e={type:type,x:RAT_CASTLE_X+40,y:y,hp:50*hpScale,maxHp:50*hpScale,dmg:12*dmgScale,range:140,speed:55*spd};
-      else if(boss)e={type:type,isBoss:true,x:RAT_CASTLE_X+20,y:y,hp:260*hpScale,maxHp:260*hpScale,dmg:28*dmgScale,range:34,speed:38*spd};
+      else if(boss)e={type:type,isBoss:true,x:RAT_CASTLE_X+20,y:y,hp:1000,maxHp:1000,dmg:46,range:34,speed:38*spd}; // Rat King: 1000 HP flat
       else e={type:type,x:RAT_CASTLE_X+20,y:y,hp:260*hpScale,maxHp:260*hpScale,dmg:28*dmgScale,range:34,speed:38*spd};
       e.attackCooldown=0;e.walkCycle=Math.random()*5;e.attackAnim=0;enemies.push(e);
     }
@@ -1225,7 +1226,7 @@
         } else {
           const r = Math.random();
           const warlordCh = currentStage >= 5 ? (currentStage === 10 ? 0.08 : 0.18) : 0;
-          const champCh = currentStage >= 3 ? 0.38 : 0;
+          const champCh = currentStage >= 3 ? (currentStage === 10 && gameState.faction==='porcupines' ? 0.25 : 0.38) : 0;
           let pick = 'gladiator';
           if (warlordCh > 0 && r > 1 - warlordCh) pick = 'warlord';
           else if (champCh > 0 && r > 1 - warlordCh - champCh) pick = 'champion';
@@ -1378,6 +1379,12 @@
           else if (a.type === 'archer' && tType === 'champion') typeMult = 0.85;
           else if (a.type === 'brute' && tType === 'champion') typeMult = 1.15;
           else if (a.type === 'scurrier' && tType === 'warlord') typeMult = 1.15;
+          // Porcupine attacker triangle (mirror for porc-player campaign)
+          else if (a.type === 'gladiator' && tType === 'archer') typeMult = 1.15;
+          else if (a.type === 'gladiator' && tType === 'brute') typeMult = 0.85;
+          else if (a.type === 'quillthrower' && tType === 'scurrier') typeMult = 1.15;
+          else if (a.type === 'warlord' && tType === 'brute') typeMult = 1.15;
+          else if (a.type === 'warlord' && tType === 'scurrier') typeMult = 0.85;
           const finalDmg = a.dmg * hm * typeMult;
           target.hp -= finalDmg;
           spawnBlood(target.x, a.y - 10, '#facc15');
@@ -1924,7 +1931,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v34';
+  var PAGE_VERSION = 'v35';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
