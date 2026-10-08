@@ -176,7 +176,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v36</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v37</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -935,8 +935,8 @@
       cardScurrier.querySelector('.card-icon').textContent=isPorc?'🦔':'🐀';
       cardScurrier.querySelector('.card-name').textContent=isPorc?'GLADIATOR ×2':'SWARM ×2';
       cardScurrier.setAttribute('aria-label',isPorc?'Deploy two gladiators for 10 biomass':'Deploy two scurriers for 10 biomass');
-      // Card 2: Brute/Warlord (heavy)
-      var bruteUnlocked=isPorc?gameState.porcUnlockedWarlord:gameState.unlockedBrute;
+      // Card 2: Brute/Warlord (heavy) — porcs unlock everything from mission 1 (earned via rat campaign)
+      var bruteUnlocked=isPorc?true:gameState.unlockedBrute;
       cardBrute.querySelector('.card-icon').textContent=isPorc?'🦔':'🛡';
       cardBrute.querySelector('.card-name').textContent=isPorc?'WARLORD':'BRUTE';
       cardBrute.classList.toggle('locked',!bruteUnlocked);
@@ -1062,7 +1062,7 @@
     document.getElementById('btn-cam-pan').addEventListener('click',function(){autoPan=!autoPan;this.textContent=autoPan?'CAM AUTO':'CAM FREE';this.setAttribute('aria-pressed',String(autoPan));});
 
     cardScurrier.addEventListener('pointerdown',function(e){e.stopPropagation();AudioEngine.init();if(biomass<10||!isGameRunning)return;biomass-=10;AudioEngine.playRatSummon();var t=gameState.faction==='porcupines'?'gladiator':'scurrier';spawnPlayerUnit(t);spawnPlayerUnit(t);updateHUD();});
-    cardBrute.addEventListener('pointerdown',function(e){e.stopPropagation();AudioEngine.init();var unlocked=gameState.faction==='porcupines'?gameState.porcUnlockedWarlord:gameState.unlockedBrute;if(!unlocked||biomass<30||!isGameRunning)return;biomass-=30;AudioEngine.playRatSummon();spawnPlayerUnit(gameState.faction==='porcupines'?'warlord':'brute');updateHUD();});
+    cardBrute.addEventListener('pointerdown',function(e){e.stopPropagation();AudioEngine.init();var unlocked=gameState.faction==='porcupines'?true:gameState.unlockedBrute;if(!unlocked||biomass<30||!isGameRunning)return;biomass-=30;AudioEngine.playRatSummon();spawnPlayerUnit(gameState.faction==='porcupines'?'warlord':'brute');updateHUD();});
     document.getElementById('card-archer').addEventListener('pointerdown', (e) => {
       e.stopPropagation();
       AudioEngine.init();
@@ -1950,7 +1950,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v36';
+  var PAGE_VERSION = 'v37';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
