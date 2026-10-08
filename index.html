@@ -176,7 +176,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v46</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v47</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -733,6 +733,7 @@
 
     var canvas=document.getElementById('canvas2d'),ctx=canvas.getContext('2d'),width=0,height=0,dpr=1;
     var MAP_WIDTH=2200,RIVER_X=1100,HIGHWAY_Y=260,ROAD_HALF_WIDTH=55,RAT_CASTLE_X=140,PORC_CASTLE_X=2060;
+    var survivalTimer=0,survivalDuration=0; // Porc defense mode: survive until evacuation
     var SCURRY_MULT=1.15; // Rat racial bonus: passive +15% movement speed
     var THICK_HIDE_MULT=1.08; // Porcupine racial bonus: passive +8% max HP
     var FACTION_STORIES={
@@ -749,16 +750,16 @@
         "This is it \u2014 the citadel gates, the granaries beyond. Everything the swarm has suffered, every brother and sister lost in the mud of the barony, comes down to this one assault. For the warren. For the pups. For survival."
       ],
       porcupines:[
-        "The rats came in the night, driven by hunger, and we bled to stop them. We buried our dead in the fields they tried to steal, and the elders convened beneath the old oak. The swarm will return \u2014 unless we end it first.",
-        "The war council's decision was unanimous: we march west. Not for conquest, but for survival \u2014 the rats' warren must fall so that our pups can sleep without fear. The veterans sharpen their quills. The young ones try not to show their fear.",
-        "We cross into the ashlands the rats left behind \u2014 burned farms, gnawed bones, the wreckage of their desperate march. It is a grim reminder of what hunger can do. We will not let it happen to our own.",
-        "The first rat outposts fall quickly. They never expected us to come to them \u2014 the aggressors have never learned what it means to be prey. But the warren is deep, and the swarm is vast.",
-        "The tunnels are worse than the scouts described \u2014 a labyrinth of hunger and teeth, every shadow hiding a defender. Our champions lead the way, quills bristling, and the dark swallows the unwary. We press on. There is no other choice.",
-        "Halfway to the warren's heart. Our supply lines stretch thin across the ashlands, and the rats harry us from the shadows they know so well. The elders remind us: every step forward is a step toward a lasting peace.",
-        "We found the breeding chambers \u2014 thousands of pups, mewling in the dark. The order came down from the war council: no quarter. Some of our soldiers wept as they obeyed. This is what survival costs.",
-        "The warren's defenders fight like cornered animals now, and who can blame them? We have become the thing we feared \u2014 the invaders, the destroyers. But we remember the burned farms and the buried dead, and we do not stop.",
-        "The Rat King himself has taken the field, massive and scarred, fighting with the fury of a father defending his young. Our champions meet him quill to claw. One of them will not see the dawn.",
-        "The warren lies broken before us. The tunnels are ours, the threat is ended, and our pups will never know the fear we knew. But as the sun rises over the conquered dark, the elders wonder: what have we become?"
+        "The main army marches north to face a threat we dare not name, leaving the Barony defended by a handful of veterans and the garrison militia. The rats come at dawn, driven by hunger. Hold the citadel until the evacuation is complete.",
+        "The first wave breaks against our quills, but the scouts report more coming \u2014 the swarm is vast, and they are desperate. The evacuation carts roll north, slow and heavy with pups and elders. We buy them time with our blood.",
+        "Word from the north: the main army is engaged, they cannot return. We are alone. The rats have learned our positions and probe for weakness. The trebuchet crews work through the night, and we pray it is enough.",
+        "They come in greater numbers now, a tide of teeth and claws. Our champions hold the gate, quills bristling, and the stones run red. The evacuation is half done. We must not break.",
+        "The rats have brought their brutes \u2014 massive, scarred veterans of the tunnel wars. They hurl themselves at our lines without fear. We meet them with disciplined volleys and pray the walls hold.",
+        "Half the Barony is evacuated. The farms burn behind us, torched to deny the swarm their harvest. It is a bitter thing to burn our own homes, but better ash than rat-food. Hold the line.",
+        "Dark news: the northern threat has broken through the mountain passes. The main army is in full retreat. If the Barony falls, there will be nowhere left to run. We are the last wall between the swarm and extinction.",
+        "The Rat King himself has taken the field, massive and terrible, leading the assault in person. Our trebuchets sing, our quills darken the sky, and still they come. The evacuation is nearly complete. Just a little longer.",
+        "The last carts are leaving. The pups are safe, the elders are safe, but we remain \u2014 the rearguard, the few who hold so that others may live. The rats sense victory and redouble their fury. We will make them pay for every stone.",
+        "Dawn breaks over a silent battlefield. The evacuation is complete, the Barony empty but unbroken. We slip away into the northern hills to rejoin our army, leaving the rats a prize of empty halls and burned fields. We survived. That is enough."
       ]
     };
     var camX=0,autoPan=true,biomass=20,maxBiomass=50,ratBaseHp=850,maxRatBaseHp=850,porcBaseHp=900,maxPorcBaseHp=900;
@@ -980,12 +981,23 @@
       ratAimAngle = 0; porcAimAngle = Math.PI;
       // Update UI labels for faction
       document.getElementById('card-archer').classList.toggle('locked', !gameState.unlockedArcher);
-      document.getElementById('mission-badge').textContent=lvl+'/10';document.getElementById('enemy-base-name').textContent=stageNames[lvl-1];updateHUD();showBanner('STAGE '+lvl+' · '+stageNames[lvl-1]);
+      document.getElementById('mission-badge').textContent=lvl+'/10';
+      if(gameState.faction==='porcupines'){
+        document.getElementById('enemy-base-name').textContent='SURVIVE';
+      }else{
+        document.getElementById('enemy-base-name').textContent=stageNames[lvl-1];
+      }
+      updateHUD();showBanner('STAGE '+lvl+' · '+stageNames[lvl-1]);
       updateDeployDeck();
       showTutorialStep(-1); // tutorial is opt-in from the main menu, never auto-shown
     }
     function updateHUD(){
       document.getElementById('bio-val').textContent=Math.floor(biomass)+'/'+maxBiomass;
+      // Porc defense: show survival countdown in mission badge
+      if(gameState.faction==='porcupines'&&isGameRunning&&!isGameOver){
+        var mins=Math.floor(survivalTimer/60),secs=Math.floor(survivalTimer%60);
+        document.getElementById('mission-badge').textContent=mins+':'+(secs<10?'0':'')+secs;
+      }
       document.getElementById('rat-base-fill').style.width=Math.max(0,ratBaseHp/maxRatBaseHp*100)+'%';
       document.getElementById('porc-base-fill').style.width=Math.max(0,porcBaseHp/maxPorcBaseHp*100)+'%';
       cardScurrier.disabled=biomass<10||!isGameRunning||isGameOver;
@@ -1370,8 +1382,10 @@
         const targetBase = (distToBase <= a.range + 8) && a.garrison == null;
 
         if (!target && !targetBase) {
-          // Direction: rats move east (+1), porcs move west (-1)
-          var dir = gameState.faction==='porcupines' ? -1 : 1;
+          // Porc defense mode: hold near citadel, don't march west
+          var isPorcDefense = gameState.faction==='porcupines';
+          // Direction: rats move east (+1), porcs move west (-1) [offensive] / hold [defensive]
+          var dir = isPorcDefense ? 0 : 1; // 0 = hold position for porc defense
           // Pause to capture: if on a cleared point not owned by our faction, hold position
           // (if defenders remain, keep advancing to engage them instead of standing in range)
           // Note: cp.owner uses 'porcs', gameState.faction uses 'porcupines'
@@ -1478,8 +1492,13 @@
       for(var pi=particles.length-1;pi>=0;pi--){var p=particles[pi];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=95*dt;p.life-=dt;if(p.life<=0)particles.splice(pi,1);}
       for(var fi=floatingTexts.length-1;fi>=0;fi--){var ft=floatingTexts[fi];ft.y-=25*dt;ft.life-=dt;if(ft.life<=0)floatingTexts.splice(fi,1);}
       var isPorcP=gameState.faction==='porcupines';
-      var enemyBaseDown=isPorcP?ratBaseHp<=0:porcBaseHp<=0;
+      var enemyBaseDown=isPorcP?false:porcBaseHp<=0; // Porc defense: no enemy base to destroy
       var playerBaseDown=isPorcP?porcBaseHp<=0:ratBaseHp<=0;
+      // Porc defense mode: survive until evacuation complete
+      if(isPorcP&&isGameRunning){
+        survivalTimer-=dt;
+        if(survivalTimer<=0){handleVictory();return;}
+      }
       if(enemyBaseDown)handleVictory();else if(playerBaseDown)handleDefeat();
     }
 
@@ -1977,7 +1996,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v46';
+  var PAGE_VERSION = 'v47';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
