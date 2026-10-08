@@ -164,7 +164,7 @@
   <section id="menu-screen" aria-label="Campaign menu">
     <div class="menu-crest" aria-hidden="true"><img src="assets/menu_rat_crest.webp" alt="" style="width:78px;height:78px;object-fit:contain;filter:drop-shadow(0 0 12px rgba(242,202,85,.25));"></div>
     <h1 id="menu-title">TIDE OF THE UNDER-HORDE</h1>
-    <p id="menu-subtitle">PORCUPINE BARONY · TEN-STAGE VANGUARD CAMPAIGN</p>
+    <p id="menu-subtitle">CHRONICLES OF THE LEAF · FOREST WARS</p>
     <div id="menu-gold" class="gold-badge">🪙 <span id="menu-gold-val">0</span> GOLD</div>
     <div class="menu-btns">
       <button class="menu-btn" id="btn-menu-continue" type="button">NEW GAME</button>
@@ -176,7 +176,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v45</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v46</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -1361,22 +1361,25 @@
           if (a.garrison != null) {
             const d = Math.hypot(dx, dy);
             if (d < minDist) { minDist = d; target = e; }
-          } else if (dx > 0 && dx < minDist && Math.abs(dy) < 38) {
-            minDist = dx; target = e;
+          } else if (dx * (gameState.faction==='porcupines' ? -1 : 1) > 0 && Math.abs(dx) < minDist && Math.abs(dy) < 38) {
+            minDist = Math.abs(dx); target = e;
           }
         });
 
-        const distToBase = PORC_CASTLE_X - a.x;
+        const distToBase = gameState.faction==='porcupines' ? a.x - RAT_CASTLE_X : PORC_CASTLE_X - a.x;
         const targetBase = (distToBase <= a.range + 8) && a.garrison == null;
 
         if (!target && !targetBase) {
+          // Direction: rats move east (+1), porcs move west (-1)
+          var dir = gameState.faction==='porcupines' ? -1 : 1;
           // Pause to capture: if on a cleared point not owned by our faction, hold position
           // (if defenders remain, keep advancing to engage them instead of standing in range)
-          var myFaction = gameState.faction;
+          // Note: cp.owner uses 'porcs', gameState.faction uses 'porcupines'
+          var myOwner = gameState.faction==='porcupines' ? 'porcs' : 'rats';
           var onUnownedPoint = false;
           for (var cpi = 0; cpi < capturePoints.length; cpi++) {
             var cp = capturePoints[cpi];
-            if (cp.owner !== myFaction && Math.hypot(a.x - cp.x, a.y - cp.y) < POINT_R) {
+            if (cp.owner !== myOwner && Math.hypot(a.x - cp.x, a.y - cp.y) < POINT_R) {
               var defendersOnPoint = false;
               for (var ei = 0; ei < enemies.length; ei++) {
                 var e = enemies[ei];
@@ -1389,7 +1392,7 @@
             // Hold position to secure the point (still attacks via target logic above)
           } else {
           // If stuck behind an ally, shift vertically across the lane to flank forward
-          const allyAhead = allies.find(o => o !== a && (o.x - a.x) > 0 && (o.x - a.x) < 22 && Math.abs(o.y - a.y) < 14);
+          const allyAhead = allies.find(o => o !== a && (o.x - a.x) * dir > 0 && (o.x - a.x) * dir < 22 && Math.abs(o.y - a.y) < 14);
           if (a.garrison != null && capturePoints[a.garrison]) {
             // Garrison: hold the point, drift back if knocked away
             const gp = capturePoints[a.garrison];
@@ -1398,9 +1401,9 @@
             if (Math.abs(gdy) > 16) { a.y += Math.sign(gdy) * a.speed * 0.6 * dt; }
           } else if (allyAhead) {
             a.y += (a.y > HIGHWAY_Y ? -18 : 18) * dt; // Fan out into lane flanks
-            a.x += a.speed * 0.45 * hm * dt;
+            a.x += a.speed * 0.45 * hm * dir * dt;
           } else {
-            a.x += a.speed * hm * dt;
+            a.x += a.speed * hm * dir * dt;
           }
           } // end capture-pause else
           a.walkCycle += dt * 10;
@@ -1443,10 +1446,13 @@
         e.attackCooldown=Math.max(0,e.attackCooldown-dt);e.attackAnim=Math.max(0,e.attackAnim-dt*4);var target=null,min=e.range;
         allies.forEach(function(a){
           if(e.garrison!=null){var gd=Math.hypot(e.x-a.x,e.y-a.y);if(gd<min){min=gd;target=a;}}
-          else{var dx=e.x-a.x;if(dx>=-3&&dx<min&&Math.abs(a.y-e.y)<35){min=dx;target=a;}}
+          else{var dx=e.x-a.x;var fwd=dx*(gameState.faction==='porcupines'?1:-1);if(fwd>=-3&&fwd<min&&Math.abs(a.y-e.y)<35){min=fwd;target=a;}}
         });
         if(e.raidPoint!=null&&capturePoints[e.raidPoint]&&capturePoints[e.raidPoint].owner==='porcs')e.raidPoint=null; // point taken, resume push
-        var targetBase=e.x-RAT_CASTLE_X<=e.range&&e.garrison==null&&e.raidPoint==null;
+        // Enemy direction: porcs (vs rats) move west, rats (vs porcs) move east
+        var eDir = gameState.faction==='porcupines' ? 1 : -1;
+        var eTargetBaseX = gameState.faction==='porcupines' ? PORC_CASTLE_X : RAT_CASTLE_X;
+        var targetBase=Math.abs(e.x-eTargetBaseX)<=e.range&&e.garrison==null&&e.raidPoint==null;
         if(!target&&!targetBase){
           if(e.garrison!=null&&capturePoints[e.garrison]){
             var gp2=capturePoints[e.garrison],gdx2=gp2.x-e.x,gdy2=gp2.y-e.y;
@@ -1457,7 +1463,7 @@
             // Raids never camp: once inside the capture radius the raid is delivered and the unit rejoins the push.
             if(Math.abs(rdx)<=POINT_R&&Math.abs(rp.y-e.y)<=POINT_R){e.raidPoint=null;}
             else{e.x+=Math.sign(rdx)*e.speed*dt;e.walkCycle+=dt*9;var rdy=rp.y-e.y;if(Math.abs(rdy)>18)e.y+=Math.sign(rdy)*e.speed*0.6*dt;}
-          }else{var ahead=enemies.some(function(o){return o!==e&&o.garrison==null&&o.raidPoint==null&&e.x-o.x>0&&e.x-o.x<18&&Math.abs(o.y-e.y)<16;});if(!ahead){e.x-=e.speed*dt;e.walkCycle+=dt*9;}}
+          }else{var ahead=enemies.some(function(o){return o!==e&&o.garrison==null&&o.raidPoint==null&&(e.x-o.x)*eDir<0&&(o.x-e.x)*eDir<18&&Math.abs(o.y-e.y)<16;});if(!ahead){e.x+=eDir*e.speed*dt;e.walkCycle+=dt*9;}}
         }
         else if(target&&e.attackCooldown<=0){e.attackCooldown=1.05;e.attackAnim=1;
           if(e.type==='quillthrower'){
@@ -1971,7 +1977,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v45';
+  var PAGE_VERSION = 'v46';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
