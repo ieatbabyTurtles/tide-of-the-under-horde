@@ -176,7 +176,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v40</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v41</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -1372,6 +1372,16 @@
         const targetBase = (distToBase <= a.range + 8) && a.garrison == null;
 
         if (!target && !targetBase) {
+          // Pause to capture: if on a point not owned by our faction, hold position
+          var myFaction = gameState.faction;
+          var onUnownedPoint = false;
+          for (var cpi = 0; cpi < capturePoints.length; cpi++) {
+            var cp = capturePoints[cpi];
+            if (cp.owner !== myFaction && Math.hypot(a.x - cp.x, a.y - cp.y) < POINT_R) { onUnownedPoint = true; break; }
+          }
+          if (onUnownedPoint) {
+            // Hold position to secure the point (still attacks via target logic above)
+          } else {
           // If stuck behind an ally, shift vertically across the lane to flank forward
           const allyAhead = allies.find(o => o !== a && (o.x - a.x) > 0 && (o.x - a.x) < 22 && Math.abs(o.y - a.y) < 14);
           if (a.garrison != null && capturePoints[a.garrison]) {
@@ -1386,6 +1396,7 @@
           } else {
             a.x += a.speed * hm * dt;
           }
+          } // end capture-pause else
           a.walkCycle += dt * 10;
         } else if (target && a.attackCooldown <= 0) {
           a.attackCooldown = 0.85;
@@ -1954,7 +1965,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v40';
+  var PAGE_VERSION = 'v41';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
