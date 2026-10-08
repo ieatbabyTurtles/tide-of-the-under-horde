@@ -176,7 +176,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v50</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v51</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -980,12 +980,12 @@
       }
       panicAvailable=true;isGameOver=false;camX=isPorcPlayer?MAP_WIDTH-width:0;stageTime=0;bossSpawned=false;raidTimer=(lvl===1?55:45);enemyWaveTimer=(lvl === 1 ? 8.0 : 5.0);ratTurretCooldown=.7;porcTurretCooldown=1.1;ambientArtilleryTimer=2;
       capturePoints=[
-        {x:650,y:HIGHWAY_Y,name:'WARREN POINT',owner:isPorcPlayer?'porcs':'rats',progress:0,progFaction:null},
+        {x:650,y:HIGHWAY_Y,name:'WARREN POINT',owner:'rats',progress:0,progFaction:null},
         {x:1100,y:HIGHWAY_Y,name:'JUDGMENT CROWN',owner:null,progress:0,progFaction:null},
-        {x:1550,y:HIGHWAY_Y,name:'BARONY POINT',owner:isPorcPlayer?'rats':'porcs',progress:0,progFaction:null}
+        {x:1550,y:HIGHWAY_Y,name:'BARONY POINT',owner:'porcs',progress:0,progFaction:null}
       ];
-      // Garrisons: player faction holds their side, enemy holds theirs
-      spawnGarrison(0,isPorcPlayer?'porcs':'rats');spawnGarrison(2,isPorcPlayer?'rats':'porcs');updatePointPips();
+      // Garrisons: rats hold west, porcs hold east (geographic)
+      spawnGarrison(0,'rats');spawnGarrison(2,'porcs');updatePointPips();
       hornTimer = 0; hornCooldown = 0; shockwaves = []; rangedShots = [];
       ratAimAngle = 0; porcAimAngle = Math.PI;
       // Update UI labels for faction
@@ -1148,14 +1148,19 @@
     }
     function spawnGarrison(pi,faction){
       var p=capturePoints[pi];if(!p)return;
+      var isPorcPlayer=gameState.faction==='porcupines';
       for(var i=0;i<2;i++){
         var off=(i===0?-24:24),gy=p.y+(Math.random()*30-15);
         if(faction==='rats'){
           var vet=1+(currentStage-1)*0.04,upg=1+((gameState.upgrades['archer']||0)*0.08),mult=vet*upg*1.5;
-          allies.push({type:'archer',x:p.x+off,y:gy,hp:50*mult,maxHp:50*mult,dmg:12*mult,range:140,speed:55*SCURRY_MULT,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0,garrison:pi});
+          var unit={type:'archer',x:p.x+off,y:gy,hp:50*mult,maxHp:50*mult,dmg:12*mult,range:140,speed:55*SCURRY_MULT,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0,garrison:pi};
+          // Rats are allies if player is rats, enemies if player is porcs
+          if(isPorcPlayer){enemies.push(unit);}else{allies.push(unit);}
         }else{
           var hpScale=1+(currentStage-1)*.10,dmgScale=1+(currentStage-1)*.085;
-          enemies.push({type:'quillthrower',x:p.x+off,y:gy,hp:60*hpScale*THICK_HIDE_MULT*1.5,maxHp:60*hpScale*THICK_HIDE_MULT*1.5,dmg:13*dmgScale*1.5,range:135,speed:50,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0,garrison:pi});
+          var unit2={type:'quillthrower',x:p.x+off,y:gy,hp:60*hpScale*THICK_HIDE_MULT*1.5,maxHp:60*hpScale*THICK_HIDE_MULT*1.5,dmg:13*dmgScale*1.5,range:135,speed:50,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0,garrison:pi};
+          // Porcs are allies if player is porcs, enemies if player is rats
+          if(isPorcPlayer){allies.push(unit2);}else{enemies.push(unit2);}
         }
       }
     }
@@ -1670,12 +1675,12 @@
         healthBar(u.x,u.y-targetH-8,u.type==='brute'?36:24,u.hp/u.maxHp,'#49cd69');
       }else drawWarcraftRat(u);
     }
-    function drawSpritePorc(e){
+    function drawSpritePorc(e,flip){
       var key=e.type==='warlord'?'porc_warlord':e.type==='quillthrower'?'porc_quillthrower':'porc_gladiator';
       var key2=key+'_walk2';
       var sc=e.isBoss?1.5:e.type==='champion'?1.25:1.0;
       var targetH=(e.type==='warlord'?84:60)*sc;
-      if(drawSpriteUnit(SPRITES[key],SPRITES[key2],e.x,e.y,targetH,false,e.walkCycle,e.attackAnim)){
+      if(drawSpriteUnit(SPRITES[key],SPRITES[key2],e.x,e.y,targetH,flip||false,e.walkCycle,e.attackAnim)){
         healthBar(e.x,e.y-targetH-8,Math.round(34*sc),e.hp/e.maxHp,'#ef4444');
       }else drawGladiatorPorcupine(e);
     }
@@ -1976,8 +1981,11 @@
         ctx.restore();
       });
 
-      allies.forEach(a => drawSpriteRat(a));
-      enemies.forEach(e => drawSpritePorc(e));
+      var isPorcP2=gameState.faction==='porcupines';
+      // Allies: rats face east (no flip), porcs face west (flip) in defense mode
+      allies.forEach(a => { if(isPorcP2){ drawSpritePorc(a, true); } else { drawSpriteRat(a); } });
+      // Enemies: porcs face west (no flip needed, they move west), rats face east
+      enemies.forEach(e => { if(isPorcP2){ drawSpriteRat(e); } else { drawSpritePorc(e); } });
 
       particles.forEach(p => {
         ctx.fillStyle = p.color;
@@ -2005,7 +2013,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v50';
+  var PAGE_VERSION = 'v51';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
