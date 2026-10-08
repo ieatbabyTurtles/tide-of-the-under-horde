@@ -175,7 +175,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v28</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v29</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -1204,8 +1204,9 @@
             if(Math.abs(gdy2)>16){e.y+=Math.sign(gdy2)*e.speed*0.6*dt;}
           }else if(e.raidPoint!=null&&capturePoints[e.raidPoint]){
             var rp=capturePoints[e.raidPoint],rdx=rp.x-e.x;
-            if(Math.abs(rdx)>24){e.x+=Math.sign(rdx)*e.speed*dt;e.walkCycle+=dt*9;}
-            else{var rdy=rp.y-e.y;if(Math.abs(rdy)>18)e.y+=Math.sign(rdy)*e.speed*0.6*dt;}
+            // Raids never camp: once inside the capture radius the raid is delivered and the unit rejoins the push.
+            if(Math.abs(rdx)<=POINT_R&&Math.abs(rp.y-e.y)<=POINT_R){e.raidPoint=null;}
+            else{e.x+=Math.sign(rdx)*e.speed*dt;e.walkCycle+=dt*9;var rdy=rp.y-e.y;if(Math.abs(rdy)>18)e.y+=Math.sign(rdy)*e.speed*0.6*dt;}
           }else{var ahead=enemies.some(function(o){return o!==e&&o.garrison==null&&o.raidPoint==null&&e.x-o.x>0&&e.x-o.x<18&&Math.abs(o.y-e.y)<16;});if(!ahead){e.x-=e.speed*dt;e.walkCycle+=dt*9;}}
         }
         else if(target&&e.attackCooldown<=0){e.attackCooldown=1.05;e.attackAnim=1;
@@ -1717,7 +1718,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v28';
+  var PAGE_VERSION = 'v29';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
