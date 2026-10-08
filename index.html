@@ -176,7 +176,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v44</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v45</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -639,13 +639,11 @@
 
       playEpicClash() {
         if (!this.sfxEnabled || !this.ctx) return;
-        // Crunch: distorted mid noise burst
-        this._noiseBurst({ dur: 0.1, type: 'bandpass', freq: 2600, gain: 0.4 });
-        // Steel scrape: downward-sweeping inharmonic partials, very short
-        const base = 2600 + Math.random() * 900;
-        [1, 1.48, 2.7].forEach((mult, i) => {
-          this._tone({ freq: base * mult, end: base * mult * 0.55, type: 'sine', dur: 0.12, gain: 0.1 / (i + 1), attack: 0.003 });
-        });
+        // Meaty crunch: low-mid noise burst (claw/flesh impact, no high chirp)
+        this._noiseBurst({ dur: 0.12, type: 'bandpass', freq: 700 + Math.random() * 300, gain: 0.35 });
+        // Snarl: low growl-like tone with variation
+        var growlBase = 90 + Math.random() * 40;
+        this._tone({ freq: growlBase, end: growlBase * 0.7, type: 'sawtooth', dur: 0.14, gain: 0.12, attack: 0.005 });
         // Weighty thud underneath
         this._tone({ freq: 110, end: 40, type: 'sine', dur: 0.18, gain: 0.45 });
         this._noiseBurst({ dur: 0.14, type: 'lowpass', freq: 500, gain: 0.3 });
@@ -1973,7 +1971,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v44';
+  var PAGE_VERSION = 'v45';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
