@@ -175,7 +175,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v31</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v32</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -706,6 +706,7 @@
 
     var canvas=document.getElementById('canvas2d'),ctx=canvas.getContext('2d'),width=0,height=0,dpr=1;
     var MAP_WIDTH=2200,RIVER_X=1100,HIGHWAY_Y=260,ROAD_HALF_WIDTH=55,RAT_CASTLE_X=140,PORC_CASTLE_X=2060;
+    var SCURRY_MULT=1.15; // Rat racial bonus: passive +15% movement speed
     var camX=0,autoPan=true,biomass=20,maxBiomass=50,ratBaseHp=850,maxRatBaseHp=850,porcBaseHp=900,maxPorcBaseHp=900;
     var panicAvailable=true,isGameOver=false,isGameRunning=false,currentStage=1;
     var ratTurretCooldown=0,porcTurretCooldown=0,stageTime=0,bossSpawned=false,raidTimer=22,activeTurretShots=[],ambientArtilleryTimer=2.5,ambientArcProjectiles=[],allies=[],enemies=[],particles=[],floatingTexts=[],enemyWaveTimer=4;
@@ -744,6 +745,7 @@
       "👆 Tap SWARM (x2) to deploy rat pairs — they cost 10 biomass.",
       "🏹 Your mounted crossbow defends the warren on its own. Push forward!",
       "📯 Tap WAR HORN to empower your swarm: +50% speed and damage for 8s.",
+      "💨 SCURRY: rats are naturally swift — all your units move 15% faster.",
       "⭕ Hold the stone circles for bonus biomass — the JUDGMENT CROWN in the middle pays the most. The enemy wants them too!",
       "💀 Destroy the Porcupine Stronghold to win the stage!"
     ];
@@ -925,16 +927,16 @@
       var upg=1+((gameState.upgrades[type]||0)*0.08); // purchased upgrades: +8% HP/dmg per level
       var mult=vet*upg;
       if(type==='scurrier'){
-        allies.push({type:type,x:RAT_CASTLE_X+40,y:roadY,hp:65*mult,maxHp:65*mult,dmg:14*mult,range:28,speed:70,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
+        allies.push({type:type,x:RAT_CASTLE_X+40,y:roadY,hp:65*mult,maxHp:65*mult,dmg:14*mult,range:28,speed:70*SCURRY_MULT,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
       } else if (type === 'archer') {
         allies.push({
           type: 'archer',
           x: RAT_CASTLE_X + 40, y: roadY,
-          hp: 50*mult, maxHp: 50*mult, dmg: 12*mult, range: 140, speed: 55,
+          hp: 50*mult, maxHp: 50*mult, dmg: 12*mult, range: 140, speed: 55*SCURRY_MULT,
           attackCooldown: 0, walkCycle: Math.random() * 5, attackAnim: 0
         });
       } else {
-        allies.push({type:type,x:RAT_CASTLE_X+20,y:roadY,hp:260*mult,maxHp:260*mult,dmg:28*mult,range:34,speed:38,reflect:.25,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
+        allies.push({type:type,x:RAT_CASTLE_X+20,y:roadY,hp:260*mult,maxHp:260*mult,dmg:28*mult,range:34,speed:38*SCURRY_MULT,reflect:.25,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
       }
     }
     function spawnGarrison(pi,faction){
@@ -943,7 +945,7 @@
         var off=(i===0?-24:24),gy=p.y+(Math.random()*30-15);
         if(faction==='rats'){
           var vet=1+(currentStage-1)*0.04,upg=1+((gameState.upgrades['archer']||0)*0.08),mult=vet*upg;
-          allies.push({type:'archer',x:p.x+off,y:gy,hp:50*mult,maxHp:50*mult,dmg:12*mult,range:140,speed:55,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0,garrison:pi});
+          allies.push({type:'archer',x:p.x+off,y:gy,hp:50*mult,maxHp:50*mult,dmg:12*mult,range:140,speed:55*SCURRY_MULT,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0,garrison:pi});
         }else{
           var hpScale=1+(currentStage-1)*.10,dmgScale=1+(currentStage-1)*.085;
           enemies.push({type:'quillthrower',x:p.x+off,y:gy,hp:60*hpScale,maxHp:60*hpScale,dmg:13*dmgScale,range:135,speed:50,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0,garrison:pi});
@@ -1718,7 +1720,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v31';
+  var PAGE_VERSION = 'v32';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
