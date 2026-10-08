@@ -176,7 +176,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v57</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v58</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -1688,13 +1688,14 @@
         healthBar(u.x,u.y-targetH-8,u.type==='brute'?36:24,u.hp/u.maxHp,'#49cd69');
       }else drawWarcraftRat(u);
     }
-    function drawSpritePorc(e,flip){
+    function drawSpritePorc(e,flip,isAlly){
       var key=e.type==='warlord'?'porc_warlord':e.type==='quillthrower'?'porc_quillthrower':'porc_gladiator';
       var key2=key+'_walk2';
       var sc=e.isBoss?1.5:e.type==='champion'?1.25:1.0;
       var targetH=(e.type==='warlord'?84:60)*sc;
+      var barColor=isAlly===true?'#49cd69':'#ef4444';
       if(drawSpriteUnit(SPRITES[key],SPRITES[key2],e.x,e.y,targetH,flip||false,e.walkCycle,e.attackAnim)){
-        healthBar(e.x,e.y-targetH-8,Math.round(34*sc),e.hp/e.maxHp,'#ef4444');
+        healthBar(e.x,e.y-targetH-8,Math.round(34*sc),e.hp/e.maxHp,barColor);
       }else drawGladiatorPorcupine(e);
     }
     function drawWarcraftRat(u){
@@ -1994,11 +1995,11 @@
         ctx.restore();
       });
 
-      var isPorcP2=gameState.faction==='porcupines';
-      // Allies: rats face east (no flip), porcs face west (flip) in defense mode
-      allies.forEach(a => { if(isPorcP2){ drawSpritePorc(a, true); } else { drawSpriteRat(a); } });
-      // Enemies: porcs face west (no flip needed, they move west), rats face east
-      enemies.forEach(e => { if(isPorcP2){ drawSpriteRat(e); } else { drawSpritePorc(e); } });
+      var isPorcP2=ACTIVE_FACTION==='porcupines';
+      // Allies: rats face east (no flip), porcs face west (flip) in defense mode; green bars
+      allies.forEach(a => { if(isPorcP2){ drawSpritePorc(a, true, true); } else { drawSpriteRat(a, true); } });
+      // Enemies: porcs face west, rats face east; red bars
+      enemies.forEach(e => { if(isPorcP2){ drawSpriteRat(e, false); } else { drawSpritePorc(e, false, false); } });
 
       particles.forEach(p => {
         ctx.fillStyle = p.color;
@@ -2026,7 +2027,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v57';
+  var PAGE_VERSION = 'v58';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
