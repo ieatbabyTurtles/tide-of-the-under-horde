@@ -175,7 +175,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v32</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v33</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -707,6 +707,7 @@
     var canvas=document.getElementById('canvas2d'),ctx=canvas.getContext('2d'),width=0,height=0,dpr=1;
     var MAP_WIDTH=2200,RIVER_X=1100,HIGHWAY_Y=260,ROAD_HALF_WIDTH=55,RAT_CASTLE_X=140,PORC_CASTLE_X=2060;
     var SCURRY_MULT=1.15; // Rat racial bonus: passive +15% movement speed
+    var THICK_HIDE_MULT=1.08; // Porcupine racial bonus: passive +15% max HP
     var camX=0,autoPan=true,biomass=20,maxBiomass=50,ratBaseHp=850,maxRatBaseHp=850,porcBaseHp=900,maxPorcBaseHp=900;
     var panicAvailable=true,isGameOver=false,isGameRunning=false,currentStage=1;
     var ratTurretCooldown=0,porcTurretCooldown=0,stageTime=0,bossSpawned=false,raidTimer=22,activeTurretShots=[],ambientArtilleryTimer=2.5,ambientArcProjectiles=[],allies=[],enemies=[],particles=[],floatingTexts=[],enemyWaveTimer=4;
@@ -746,6 +747,7 @@
       "🏹 Your mounted crossbow defends the warren on its own. Push forward!",
       "📯 Tap WAR HORN to empower your swarm: +50% speed and damage for 8s.",
       "💨 SCURRY: rats are naturally swift — all your units move 15% faster.",
+      "🛡️ THICK HIDE: porcupines are naturally tough — all enemy units have 8% more health.",
       "⭕ Hold the stone circles for bonus biomass — the JUDGMENT CROWN in the middle pays the most. The enemy wants them too!",
       "💀 Destroy the Porcupine Stronghold to win the stage!"
     ];
@@ -948,7 +950,7 @@
           allies.push({type:'archer',x:p.x+off,y:gy,hp:50*mult,maxHp:50*mult,dmg:12*mult,range:140,speed:55*SCURRY_MULT,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0,garrison:pi});
         }else{
           var hpScale=1+(currentStage-1)*.10,dmgScale=1+(currentStage-1)*.085;
-          enemies.push({type:'quillthrower',x:p.x+off,y:gy,hp:60*hpScale,maxHp:60*hpScale,dmg:13*dmgScale,range:135,speed:50,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0,garrison:pi});
+          enemies.push({type:'quillthrower',x:p.x+off,y:gy,hp:60*hpScale*THICK_HIDE_MULT,maxHp:60*hpScale*THICK_HIDE_MULT,dmg:13*dmgScale,range:135,speed:50,attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0,garrison:pi});
         }
       }
     }
@@ -960,10 +962,10 @@
     }
     function spawnPorcupineEnemy(type,forceBoss){
       var y=HIGHWAY_Y+(Math.random()*40-20),boss=forceBoss===true,hpScale=1+(currentStage-1)*.10,dmgScale=1+(currentStage-1)*.085,e;
-      if(type==='gladiator')e={type:type,x:PORC_CASTLE_X-40,y:y,hp:85*hpScale,maxHp:85*hpScale,dmg:14*dmgScale,range:30,speed:50};
-      else if(type==='champion')e={type:type,x:PORC_CASTLE_X-40,y:y,hp:170*hpScale,maxHp:170*hpScale,dmg:22*dmgScale,range:36,speed:40};
-      else if(boss)e={type:type,isBoss:true,x:PORC_CASTLE_X-50,y:y,hp:1320,maxHp:1320,dmg:46,range:46,speed:32};
-      else e={type:type,x:PORC_CASTLE_X-50,y:y,hp:450*hpScale,maxHp:450*hpScale,dmg:32*dmgScale,range:46,speed:32};
+      if(type==='gladiator')e={type:type,x:PORC_CASTLE_X-40,y:y,hp:85*hpScale*THICK_HIDE_MULT,maxHp:85*hpScale*THICK_HIDE_MULT,dmg:14*dmgScale,range:30,speed:50};
+      else if(type==='champion')e={type:type,x:PORC_CASTLE_X-40,y:y,hp:170*hpScale*THICK_HIDE_MULT,maxHp:170*hpScale*THICK_HIDE_MULT,dmg:22*dmgScale,range:36,speed:40};
+      else if(boss)e={type:type,isBoss:true,x:PORC_CASTLE_X-50,y:y,hp:1320*THICK_HIDE_MULT,maxHp:1320*THICK_HIDE_MULT,dmg:46,range:46,speed:32};
+      else e={type:type,x:PORC_CASTLE_X-50,y:y,hp:450*hpScale*THICK_HIDE_MULT,maxHp:450*hpScale*THICK_HIDE_MULT,dmg:32*dmgScale,range:46,speed:32};
       e.attackCooldown=0;e.walkCycle=Math.random()*5;e.attackAnim=0;enemies.push(e);
     }
     function updatePointPips(){
@@ -1720,7 +1722,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v32';
+  var PAGE_VERSION = 'v33';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
