@@ -176,7 +176,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v74</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v75</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -1038,9 +1038,10 @@
       const hornBtn = document.getElementById('horn-btn');
       if (hornCooldown > 0) {
         hornBtn.classList.remove('ready');
-        hornBtn.innerText = `📯 ${Math.ceil(hornCooldown)}s`;
+        var hornEmoji=gameState.faction==='porcupines'?'🛡️':'📯';
+        hornBtn.innerText = `${hornEmoji} ${Math.ceil(hornCooldown)}s`;
       } else {
-        hornBtn.innerText = '📯 WAR HORN';
+        hornBtn.innerText = gameState.faction==='porcupines'?'🛡️ BULWARK':'📯 WAR HORN';
         hornBtn.classList.toggle('ready', isGameRunning && biomass >= HORN_COST);
       }
       panicBtn.classList.toggle('ready',isGameRunning&&!isGameOver&&panicAvailable&&ratBaseHp/maxRatBaseHp<=.35);
@@ -1122,7 +1123,8 @@
       hornTimer = HORN_DUR; hornCooldown = HORN_CD;
       AudioEngine.playWarHorn();
       shockwaves.push({ x: RAT_CASTLE_X, y: HIGHWAY_Y, r: 24, life: 0.7 });
-      showBanner("📯 WAR HORN! +50% speed & damage!");
+      var isPorcHorn=gameState.faction==='porcupines';
+      showBanner(isPorcHorn?"🛡️ BULWARK! +50% armor!":"📯 WAR HORN! +50% speed & damage!");
       updateHUD();
     });
     panicBtn.addEventListener('click',function(){if(!panicAvailable||ratBaseHp/maxRatBaseHp>.35)return;panicAvailable=false;AudioEngine.playNova();enemies.forEach(function(e){if(e.x<RIVER_X){e.hp-=260;spawnBlood(e.x,e.y,'#ef4444');floatingTexts.push({x:e.x,y:e.y-30,text:'NOVA −260',color:'#facc15',life:.8});}});for(var i=0;i<6;i++)spawnRatUnit('scurrier');showBanner('RESURGENCE NOVA DETONATED');updateHUD();});
@@ -1306,8 +1308,8 @@
           spawnEnemyUnit('warlord', true); bossSpawned = true; // one boss, then normal warlords
         } else {
           const r = Math.random();
-          const warlordCh = currentStage >= 5 ? (currentStage === 10 ? 0.08 : 0.18) : 0;
-          const champCh = currentStage >= 3 ? (currentStage === 10 && gameState.faction==='porcupines' ? 0.25 : 0.38) : 0;
+          const warlordCh = currentStage === 10 ? 0.08 : 0.18;
+          const champCh = currentStage === 10 && gameState.faction==='porcupines' ? 0.25 : 0.38;
           let pick = 'gladiator';
           if (warlordCh > 0 && r > 1 - warlordCh) pick = 'warlord';
           else if (champCh > 0 && r > 1 - warlordCh - champCh) pick = 'champion';
@@ -1418,6 +1420,7 @@
         a.attackCooldown = Math.max(0, a.attackCooldown - dt);
         if (a.attackAnim > 0) a.attackAnim -= dt * 4;
         const hm = hornTimer > 0 ? 1.5 : 1;
+        const hmSpeed = (hornTimer > 0 && gameState.faction!=='porcupines') ? 1.5 : 1; // Porcs don't get speed
 
         let target = null;
         let minDist = a.range;
@@ -1471,9 +1474,9 @@
             if (Math.abs(gdy) > 16) { a.y += Math.sign(gdy) * a.speed * 0.6 * dt; }
           } else if (allyAhead) {
             a.y += (a.y > HIGHWAY_Y ? -18 : 18) * dt; // Fan out into lane flanks
-            a.x += a.speed * 0.45 * hm * dir * dt;
+            a.x += a.speed * 0.45 * hmSpeed * dir * dt;
           } else {
-            a.x += a.speed * hm * dir * dt;
+            a.x += a.speed * hmSpeed * dir * dt;
           }
           } // end capture-pause else
           a.walkCycle += dt * 10;
@@ -1539,7 +1542,7 @@
           if(e.type==='quillthrower'){
             activeTurretShots.push({x:e.x,y:e.y-14,tx:target.x,ty:target.y-10,target:target,speed:650,color:'#fde047',isQuill:true,dmg:e.dmg});
             AudioEngine.playQuillThrow();
-          }else{target.hp-=e.dmg;AudioEngine.playEpicClash();}
+          }else{var dmgMul=(gameState.faction==='porcupines'&&hornTimer>0)?0.5:1;target.hp-=e.dmg*dmgMul;AudioEngine.playEpicClash();}
           spawnBlood(target.x,e.y-10,'#ef4444');if(target.reflect){var ref=Math.round(e.dmg*target.reflect);e.hp-=ref;floatingTexts.push({x:e.x,y:e.y-30,text:'THORNS −'+ref,color:'#f59e0b',life:.6});}}
         else if(targetBase&&e.attackCooldown<=0){e.attackCooldown=1.05;e.attackAnim=1;ratBaseHp-=e.dmg;AudioEngine.playEpicClash();spawnBlood(RAT_CASTLE_X,e.y-15,'#22c55e');}
       });
@@ -2066,7 +2069,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v74';
+  var PAGE_VERSION = 'v75';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
