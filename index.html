@@ -176,7 +176,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v69</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v70</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -1158,11 +1158,11 @@
       var hpM=THICK_HIDE_MULT*1.3; // Thick Hide + war-fervor toughness (porc campaign balance)
       var dmgM=1.3, spdM=1.3; // war-fervor: porcs fight harder/faster on the offensive
       if(type==='gladiator'){
-        allies.push({type:type,x:playerCastleX+40,y:roadY,hp:85*mult*hpM,maxHp:85*mult*hpM,dmg:14*mult*dmgM,range:30,speed:Math.round(50*spdM),attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
+        allies.push({type:type,x:playerCastleX+100,y:roadY,hp:85*mult*hpM,maxHp:85*mult*hpM,dmg:14*mult*dmgM,range:30,speed:Math.round(50*spdM),attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
       } else if(type==='quillthrower'){
-        allies.push({type:type,x:playerCastleX+40,y:roadY,hp:60*mult*hpM,maxHp:60*mult*hpM,dmg:13*mult*dmgM,range:135,speed:Math.round(50*spdM),attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
+        allies.push({type:type,x:playerCastleX+100,y:roadY,hp:60*mult*hpM,maxHp:60*mult*hpM,dmg:13*mult*dmgM,range:135,speed:Math.round(50*spdM),attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
       } else { // warlord
-        allies.push({type:type,x:playerCastleX+50,y:roadY,hp:450*mult*hpM,maxHp:450*mult*hpM,dmg:32*mult*dmgM,range:46,speed:Math.round(32*spdM),attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
+        allies.push({type:type,x:playerCastleX+110,y:roadY,hp:450*mult*hpM,maxHp:450*mult*hpM,dmg:32*mult*dmgM,range:46,speed:Math.round(32*spdM),attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
       }
     }
     function spawnPlayerUnit(type){
@@ -2034,7 +2034,7 @@
       var isPorcP2=gameState.faction==='porcupines';
       // Allies (player, left) face EAST toward enemy. Enemies (right) face WEST toward player.
       allies.forEach(a => { if(isPorcP2){ drawSpritePorc(a, true, true); } else { drawSpriteRat(a, true); } });
-      enemies.forEach(e => { if(isPorcP2){ drawSpriteRat(e, true); } else { drawSpritePorc(e, false, false); } });
+      enemies.forEach(e => { if(isPorcP2){ drawSpriteRat(e, false); } else { drawSpritePorc(e, false, false); } });
 
       particles.forEach(p => {
         ctx.fillStyle = p.color;
@@ -2062,7 +2062,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v69';
+  var PAGE_VERSION = 'v70';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
