@@ -176,7 +176,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v65</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v66</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -1004,8 +1004,12 @@
       document.getElementById('card-archer').classList.toggle('locked', !gameState.unlockedArcher);
       document.getElementById('mission-badge').textContent=lvl+'/10';
       if(gameState.faction==='porcupines'){
-        document.getElementById('enemy-base-name').textContent='SURVIVE';
+        // Player (porcs) on left, enemy (rats) on right
+        document.querySelector('#base-hud .base-block:first-child div:first-child').textContent='PORC CITADEL';
+        document.getElementById('enemy-base-name').textContent='RAT UNDER-WARREN';
       }else{
+        // Player (rats) on left, enemy (porcs) on right
+        document.querySelector('#base-hud .base-block:first-child div:first-child').textContent='RAT UNDER-WARREN';
         document.getElementById('enemy-base-name').textContent=stageNames[lvl-1];
       }
       updateHUD();showBanner('STAGE '+lvl+' · '+stageNames[lvl-1]);
@@ -1019,12 +1023,15 @@
         var mins=Math.floor(survivalTimer/60),secs=Math.floor(survivalTimer%60);
         document.getElementById('mission-badge').textContent=mins+':'+(secs<10?'0':'')+secs;
       }
-      document.getElementById('rat-base-fill').style.width=Math.max(0,ratBaseHp/maxRatBaseHp*100)+'%';
-      document.getElementById('porc-base-fill').style.width=Math.max(0,porcBaseHp/maxPorcBaseHp*100)+'%';
+      // Left=player's base, right=enemy's base
+      var leftHp=isPorcP3?porcBaseHp:ratBaseHp, leftMax=isPorcP3?maxPorcBaseHp:maxRatBaseHp;
+      var rightHp=isPorcP3?ratBaseHp:porcBaseHp, rightMax=isPorcP3?maxRatBaseHp:maxPorcBaseHp;
+      document.getElementById('rat-base-fill').style.width=Math.max(0,leftHp/leftMax*100)+'%';
+      document.getElementById('porc-base-fill').style.width=Math.max(0,rightHp/rightMax*100)+'%';
       // Base bar colors: player's base green, enemy's red
       var isPorcP3=gameState.faction==='porcupines';
-      document.getElementById('rat-base-fill').style.background=isPorcP3?'linear-gradient(90deg,#f17061,#b92e29)':'linear-gradient(90deg,#2f9d53,#86dc63)';
-      document.getElementById('porc-base-fill').style.background=isPorcP3?'linear-gradient(90deg,#2f9d53,#86dc63)':'linear-gradient(90deg,#f17061,#b92e29)';
+      document.getElementById('rat-base-fill').style.background='linear-gradient(90deg,#2f9d53,#86dc63)'; // Left=player=green
+      document.getElementById('porc-base-fill').style.background='linear-gradient(90deg,#f17061,#b92e29)'; // Right=enemy=red
       cardScurrier.disabled=biomass<10||!isGameRunning||isGameOver;
       cardBrute.classList.toggle('locked',!gameState.unlockedBrute);cardBrute.disabled=!gameState.unlockedBrute||biomass<30||!isGameRunning||isGameOver;
       if (gameState.unlockedArcher) { document.getElementById('card-archer').classList.toggle('disabled', biomass < 15); }
@@ -1332,7 +1339,8 @@
       }
       {
         let ta = null, td = porcRange;
-        allies.forEach(a => { const d = PORC_CASTLE_X - a.x; if (d > 0 && d < td) { td = d; ta = a; } });
+        var porcAimTargets = gameState.faction==='porcupines' ? enemies : allies;
+        porcAimTargets.forEach(a => { const d = Math.abs(a.x - porcTurretX); if (d > 0 && d < td) { td = d; ta = a; } });
         if (ta) porcAimAngle = angleLerp(porcAimAngle, Math.atan2((ta.y - 10) - (HIGHWAY_Y - 40), ta.x - (porcTurretX - 14)), Math.min(1, dt * 8));
       }
 
@@ -1341,7 +1349,7 @@
         let closestEnemy = null, closestDist = 240;
         // Rat turret targets porcs: allies if porc player, enemies if rat player
         var ratTargets = gameState.faction==='porcupines' ? allies : enemies;
-        ratTargets.forEach(e => { const d = e.x - RAT_CASTLE_X; if (d > 0 && d < closestDist) { closestDist = d; closestEnemy = e; } });
+        ratTargets.forEach(e => { const d = Math.abs(e.x - ratTurretX); if (d > 0 && d < closestDist) { closestDist = d; closestEnemy = e; } });
         if (closestEnemy) {
           ratTurretCooldown = 1.6;
           AudioEngine.playTurretShot();
@@ -1354,7 +1362,7 @@
       if (porcTurretCooldown <= 0) {
         // Porc turret targets rats: enemies if porc player, allies if rat player
         var porcTargets = gameState.faction==='porcupines' ? enemies : allies;
-        const attackers = porcTargets.filter(a => (PORC_CASTLE_X - a.x) > 0 && (PORC_CASTLE_X - a.x) < porcRange);
+        const attackers = porcTargets.filter(a => Math.abs(a.x - porcTurretX) > 0 && Math.abs(a.x - porcTurretX) < porcRange);
         if (attackers.length > 0) {
           porcTurretCooldown = 1.8;
           AudioEngine.playTurretShot();
@@ -1506,7 +1514,7 @@
         if(e.raidPoint!=null&&capturePoints[e.raidPoint]&&capturePoints[e.raidPoint].owner==='porcs')e.raidPoint=null; // point taken, resume push
         // Enemy direction: porcs (vs rats) move west, rats (vs porcs) move east
         var eDir = gameState.faction==='porcupines' ? 1 : -1;
-        var eTargetBaseX = gameState.faction==='porcupines' ? PORC_CASTLE_X : RAT_CASTLE_X;
+        var eTargetBaseX = playerCastleX; // Player's base always on left
         var targetBase=Math.abs(e.x-eTargetBaseX)<=e.range&&e.garrison==null&&e.raidPoint==null;
         if(!target&&!targetBase){
           if(e.garrison!=null&&capturePoints[e.garrison]){
@@ -1985,8 +1993,14 @@
       drawStoneHighwayAndRiver();
       drawCapturePoints();
 
-      drawRatBurrowBastion(RAT_CASTLE_X, HIGHWAY_Y);
-      drawPorcupineCitadel(PORC_CASTLE_X, HIGHWAY_Y);
+      // Player's base on left, enemy's on right — building art follows faction
+      if(gameState.faction==='porcupines'){
+        drawPorcupineCitadel(playerCastleX, HIGHWAY_Y);
+        drawRatBurrowBastion(enemyCastleX, HIGHWAY_Y);
+      } else {
+        drawRatBurrowBastion(playerCastleX, HIGHWAY_Y);
+        drawPorcupineCitadel(enemyCastleX, HIGHWAY_Y);
+      }
       drawTurretProjectiles();
       rangedShots.forEach(s => {
         ctx.save();
@@ -2042,7 +2056,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v65';
+  var PAGE_VERSION = 'v66';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
