@@ -176,7 +176,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v75</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v76</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -1308,8 +1308,9 @@
           spawnEnemyUnit('warlord', true); bossSpawned = true; // one boss, then normal warlords
         } else {
           const r = Math.random();
-          const warlordCh = currentStage === 10 ? 0.08 : 0.18;
-          const champCh = currentStage === 10 && gameState.faction==='porcupines' ? 0.25 : 0.38;
+          var isPorcP2=gameState.faction==='porcupines';
+          const warlordCh = isPorcP2 ? (currentStage === 10 ? 0.08 : 0.18) : (currentStage >= 5 ? (currentStage === 10 ? 0.08 : 0.18) : 0);
+          const champCh = isPorcP2 ? (currentStage === 10 ? 0.25 : 0.38) : (currentStage >= 3 ? 0.38 : 0);
           let pick = 'gladiator';
           if (warlordCh > 0 && r > 1 - warlordCh) pick = 'warlord';
           else if (champCh > 0 && r > 1 - warlordCh - champCh) pick = 'champion';
@@ -2069,7 +2070,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v75';
+  var PAGE_VERSION = 'v76';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
