@@ -176,7 +176,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v66</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v67</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -1226,10 +1226,14 @@
     }
     function updatePointPips(){
       var el=document.getElementById('point-pips');if(!el)return;el.textContent='';
-      var colors={rats:'#b45309',porcs:'#b91c1c'};
+      var isPorcP=gameState.faction==='porcupines';
+      var playerFaction=isPorcP?'porcs':'rats';
       capturePoints.forEach(function(p){
         var s=document.createElement('span');s.className='point-pip';
-        s.style.background=colors[p.owner]||'#4b5563';
+        // Player-owned=blue, enemy-owned=red, neutral=gray
+        if(p.owner===playerFaction)s.style.background='#2563eb';
+        else if(p.owner)s.style.background='#b91c1c';
+        else s.style.background='#4b5563';
         s.title=p.name;el.appendChild(s);
       });
     }
@@ -1513,7 +1517,7 @@
         });
         if(e.raidPoint!=null&&capturePoints[e.raidPoint]&&capturePoints[e.raidPoint].owner==='porcs')e.raidPoint=null; // point taken, resume push
         // Enemy direction: porcs (vs rats) move west, rats (vs porcs) move east
-        var eDir = gameState.faction==='porcupines' ? 1 : -1;
+        var eDir = -1; // Enemies always move west (player on left)
         var eTargetBaseX = playerCastleX; // Player's base always on left
         var targetBase=Math.abs(e.x-eTargetBaseX)<=e.range&&e.garrison==null&&e.raidPoint==null;
         if(!target&&!targetBase){
@@ -1629,7 +1633,8 @@
         ctx.save();ctx.translate(cxf,cyf);ctx.rotate(ratAimAngle);
         ctx.drawImage(timg,-ttw/2,-tth/2,ttw,tth);ctx.restore();
       }
-      ctx.fillStyle='#86efac';ctx.font='bold 9px sans-serif';
+      var slingerColor=gameState.faction==='porcupines'?'#fca5a5':'#86efac'; // Enemy=red, player=green
+      ctx.fillStyle=slingerColor;ctx.font='bold 9px sans-serif';
       ctx.fillText('SLINGER',cxf-18,cyf-30);
     }
     function drawPorcupineCitadel(x,y){
@@ -1649,7 +1654,8 @@
         ctx.save();ctx.translate(cxf,cyf);ctx.rotate(porcAimAngle-Math.PI);
         ctx.drawImage(timg,-ttw/2,-tth/2,ttw,tth);ctx.restore();
       }
-      ctx.fillStyle='#fca5a5';ctx.font='bold 9px sans-serif';
+      var trebColor=gameState.faction==='porcupines'?'#86efac':'#fca5a5'; // Player=green, enemy=red
+      ctx.fillStyle=trebColor;ctx.font='bold 9px sans-serif';
       ctx.fillText('TREBUCHET',cxf-22,cyf-30);
     }
     function drawTurretProjectiles() {
@@ -1956,7 +1962,8 @@
     }
     function drawCapturePoints(){
       capturePoints.forEach(function(p){
-        var ownerColor=p.owner==='rats'?'#b45309':p.owner==='porcs'?'#b91c1c':'#6b7280';
+        var playerFac=gameState.faction==='porcupines'?'porcs':'rats';
+        var ownerColor=p.owner===playerFac?'#2563eb':p.owner?'#b91c1c':'#6b7280';
         ctx.save();ctx.translate(p.x,p.y);
         ctx.fillStyle='rgba(0,0,0,0.3)';
         ctx.beginPath();ctx.ellipse(0,6,58,20,0,0,Math.PI*2);ctx.fill();
@@ -2056,7 +2063,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v66';
+  var PAGE_VERSION = 'v67';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
