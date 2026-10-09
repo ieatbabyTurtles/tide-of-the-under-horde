@@ -176,7 +176,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v79</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v80</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -1484,9 +1484,10 @@
           // Player units march east toward enemy (both factions, player always on left)
           // Direction: +1 = east (toward enemy on right)
           var dir = 1;
-          // Porc defense: hold at the middle, don't push into enemy territory
-          if(gameState.faction==='porcupines' && a.x >= 1100 && !a.garrison){
-            dir = 0; // Hold position at/near the middle
+          // Porc defense: hold at Barony Point (x=650), don't push to middle
+          // If the line breaks, the citadel is exposed — higher stakes
+          if(gameState.faction==='porcupines' && a.x >= 650 && !a.garrison){
+            dir = 0; // Hold at Barony Point
           }
           // Pause to capture: if on a cleared point not owned by our faction, hold position
           // (if defenders remain, keep advancing to engage them instead of standing in range)
@@ -2112,7 +2113,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v79';
+  var PAGE_VERSION = 'v80';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
