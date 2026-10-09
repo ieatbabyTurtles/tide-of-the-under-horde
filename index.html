@@ -176,7 +176,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v64</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v65</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -965,12 +965,17 @@
       })(s);
     }
     function startGameplay(level){level=Math.max(1,Math.min(10,parseInt(level,10)||1));gameState.currentStage=level;syncStateToUrl();menuScreen.style.display='none';missionModal.style.display='none';settingsModal.style.display='none';resetModal.style.display='none';resultModal.style.display='none';howtoModal.style.display='none';upgradeModal.style.display='none';document.getElementById('faction-modal').style.display='none';document.getElementById('story-modal').style.display='none';setupStage(level);isGameRunning=true;AudioEngine.init();AudioEngine.startGameBGM();}
+    var playerCastleX=RAT_CASTLE_X, enemyCastleX=PORC_CASTLE_X; // Global: player left, enemy right
+    var ratTurretX=RAT_CASTLE_X, porcTurretX=PORC_CASTLE_X; // Updated in setupStage
     function setupStage(lvl){
       currentStage=lvl;allies=[];enemies=[];particles=[];floatingTexts=[];activeTurretShots=[];ambientArcProjectiles=[];biomass=20;
       var isPorcPlayer=gameState.faction==='porcupines';
-      // Faction-aware positions: player defends their own castle, attacks the enemy's
-      var playerCastleX=isPorcPlayer?PORC_CASTLE_X:RAT_CASTLE_X;
-      var enemyCastleX=isPorcPlayer?RAT_CASTLE_X:PORC_CASTLE_X;
+      // Player ALWAYS on left (x=140), enemy ALWAYS on right (x=2060), regardless of faction
+      playerCastleX=RAT_CASTLE_X;
+      enemyCastleX=PORC_CASTLE_X;
+      // Turrets: each faction's turret is at their base (player left, enemy right)
+      if(isPorcPlayer){porcTurretX=playerCastleX;ratTurretX=enemyCastleX;}
+      else{ratTurretX=playerCastleX;porcTurretX=enemyCastleX;}
       // Base HP: player's base vs enemy's base
       if(isPorcPlayer){ porcBaseHp=maxPorcBaseHp=800+lvl*120; ratBaseHp=maxRatBaseHp; }
       else { ratBaseHp=maxRatBaseHp; maxPorcBaseHp=800+lvl*120; porcBaseHp=maxPorcBaseHp; }
@@ -982,12 +987,17 @@
       }
       panicAvailable=true;isGameOver=false;camX=isPorcPlayer?MAP_WIDTH-width:0;stageTime=0;bossSpawned=false;raidTimer=(lvl===1?55:45);enemyWaveTimer=(lvl === 1 ? 8.0 : 5.0);ratTurretCooldown=.7;porcTurretCooldown=1.1;ambientArtilleryTimer=2;
       capturePoints=[
-        {x:650,y:HIGHWAY_Y,name:'WARREN POINT',owner:'rats',progress:0,progFaction:null},
+        {x:650,y:HIGHWAY_Y,name:'BARONY POINT',owner:'porcs',progress:0,progFaction:null},
         {x:1100,y:HIGHWAY_Y,name:'JUDGMENT CROWN',owner:null,progress:0,progFaction:null},
-        {x:1550,y:HIGHWAY_Y,name:'BARONY POINT',owner:'porcs',progress:0,progFaction:null}
+        {x:1550,y:HIGHWAY_Y,name:'WARREN POINT',owner:'rats',progress:0,progFaction:null}
       ];
-      // Garrisons: rats hold west, porcs hold east (geographic)
-      spawnGarrison(0,'rats');spawnGarrison(2,'porcs');updatePointPips();
+      // Garrisons: player (porcs) holds left, enemy (rats) holds right
+      // Note: for rat player, this is reversed - handled by faction-aware spawnGarrison
+      var leftOwner=gameState.faction==='porcupines'?'porcs':'rats';
+      var rightOwner=gameState.faction==='porcupines'?'rats':'porcs';
+      capturePoints[0].owner=leftOwner;capturePoints[0].name=leftOwner==='porcs'?'BARONY POINT':'WARREN POINT';
+      capturePoints[2].owner=rightOwner;capturePoints[2].name=rightOwner==='rats'?'WARREN POINT':'BARONY POINT';
+      spawnGarrison(0,leftOwner);spawnGarrison(2,rightOwner);updatePointPips();
       hornTimer = 0; hornCooldown = 0; shockwaves = []; rangedShots = [];
       ratAimAngle = 0; porcAimAngle = Math.PI;
       // Update UI labels for faction
@@ -1141,11 +1151,11 @@
       var hpM=THICK_HIDE_MULT*1.3; // Thick Hide + war-fervor toughness (porc campaign balance)
       var dmgM=1.3, spdM=1.3; // war-fervor: porcs fight harder/faster on the offensive
       if(type==='gladiator'){
-        allies.push({type:type,x:PORC_CASTLE_X-120,y:roadY,hp:85*mult*hpM,maxHp:85*mult*hpM,dmg:14*mult*dmgM,range:30,speed:Math.round(50*spdM),attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
+        allies.push({type:type,x:playerCastleX+40,y:roadY,hp:85*mult*hpM,maxHp:85*mult*hpM,dmg:14*mult*dmgM,range:30,speed:Math.round(50*spdM),attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
       } else if(type==='quillthrower'){
-        allies.push({type:type,x:PORC_CASTLE_X-120,y:roadY,hp:60*mult*hpM,maxHp:60*mult*hpM,dmg:13*mult*dmgM,range:135,speed:Math.round(50*spdM),attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
+        allies.push({type:type,x:playerCastleX+40,y:roadY,hp:60*mult*hpM,maxHp:60*mult*hpM,dmg:13*mult*dmgM,range:135,speed:Math.round(50*spdM),attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
       } else { // warlord
-        allies.push({type:type,x:PORC_CASTLE_X-130,y:roadY,hp:450*mult*hpM,maxHp:450*mult*hpM,dmg:32*mult*dmgM,range:46,speed:Math.round(32*spdM),attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
+        allies.push({type:type,x:playerCastleX+50,y:roadY,hp:450*mult*hpM,maxHp:450*mult*hpM,dmg:32*mult*dmgM,range:46,speed:Math.round(32*spdM),attackCooldown:0,walkCycle:Math.random()*5,attackAnim:0});
       }
     }
     function spawnPlayerUnit(type){
@@ -1192,10 +1202,10 @@
       var y=HIGHWAY_Y+(Math.random()*40-20),boss=forceBoss===true;
       var hpScale=1+(currentStage-1)*.10,dmgScale=1+(currentStage-1)*.085,e;
       var spd=SCURRY_MULT;
-      if(type==='scurrier')e={type:type,x:RAT_CASTLE_X+40,y:y,hp:65*hpScale,maxHp:65*hpScale,dmg:14*dmgScale,range:28,speed:70*spd};
-      else if(type==='archer')e={type:type,x:RAT_CASTLE_X+40,y:y,hp:50*hpScale,maxHp:50*hpScale,dmg:12*dmgScale,range:140,speed:55*spd};
-      else if(boss)e={type:type,isBoss:true,x:RAT_CASTLE_X+20,y:y,hp:1000,maxHp:1000,dmg:46,range:34,speed:38*spd}; // Rat King: 1000 HP flat
-      else e={type:type,x:RAT_CASTLE_X+20,y:y,hp:260*hpScale,maxHp:260*hpScale,dmg:28*dmgScale,range:34,speed:38*spd};
+      if(type==='scurrier')e={type:type,x:enemyCastleX-40,y:y,hp:65*hpScale,maxHp:65*hpScale,dmg:14*dmgScale,range:28,speed:70*spd};
+      else if(type==='archer')e={type:type,x:enemyCastleX-40,y:y,hp:50*hpScale,maxHp:50*hpScale,dmg:12*dmgScale,range:140,speed:55*spd};
+      else if(boss)e={type:type,isBoss:true,x:enemyCastleX-20,y:y,hp:1000,maxHp:1000,dmg:46,range:34,speed:38*spd}; // Rat King: 1000 HP flat
+      else e={type:type,x:enemyCastleX-20,y:y,hp:260*hpScale,maxHp:260*hpScale,dmg:28*dmgScale,range:34,speed:38*spd};
       e.attackCooldown=0;e.walkCycle=Math.random()*5;e.attackAnim=0;enemies.push(e);
     }
     function spawnEnemyUnit(type,forceBoss){
@@ -1317,13 +1327,13 @@
       const porcRange = 170 + currentStage * 10;
       {
         let ta = null, td = 240;
-        enemies.forEach(e => { const d = e.x - RAT_CASTLE_X; if (d > 0 && d < td) { td = d; ta = e; } });
-        if (ta) ratAimAngle = angleLerp(ratAimAngle, Math.atan2((ta.y - 10) - (HIGHWAY_Y - 56), ta.x - (RAT_CASTLE_X + 10)), Math.min(1, dt * 8));
+        enemies.forEach(e => { const d = Math.abs(e.x - ratTurretX); if (d > 0 && d < td) { td = d; ta = e; } });
+        if (ta) ratAimAngle = angleLerp(ratAimAngle, Math.atan2((ta.y - 10) - (HIGHWAY_Y - 56), ta.x - (ratTurretX + 10)), Math.min(1, dt * 8));
       }
       {
         let ta = null, td = porcRange;
         allies.forEach(a => { const d = PORC_CASTLE_X - a.x; if (d > 0 && d < td) { td = d; ta = a; } });
-        if (ta) porcAimAngle = angleLerp(porcAimAngle, Math.atan2((ta.y - 10) - (HIGHWAY_Y - 40), ta.x - (PORC_CASTLE_X - 14)), Math.min(1, dt * 8));
+        if (ta) porcAimAngle = angleLerp(porcAimAngle, Math.atan2((ta.y - 10) - (HIGHWAY_Y - 40), ta.x - (porcTurretX - 14)), Math.min(1, dt * 8));
       }
 
       ratTurretCooldown -= dt;
@@ -1335,7 +1345,7 @@
         if (closestEnemy) {
           ratTurretCooldown = 1.6;
           AudioEngine.playTurretShot();
-          const mx = (RAT_CASTLE_X + 10) + Math.cos(ratAimAngle) * 42;
+          const mx = (ratTurretX + 10) + Math.cos(ratAimAngle) * 42;
           const my = (HIGHWAY_Y - 56) + Math.sin(ratAimAngle) * 42;
           activeTurretShots.push({ x: mx, y: my, tx: closestEnemy.x, ty: closestEnemy.y - 10, target: closestEnemy, speed: 750, color: '#cbd5e1', isQuill: false, dmg: 28 });
         }
@@ -1349,7 +1359,7 @@
           porcTurretCooldown = 1.8;
           AudioEngine.playTurretShot();
           attackers.slice(0, 3).forEach(target => {
-            const mx = (PORC_CASTLE_X - 14) + Math.cos(porcAimAngle) * 46;
+            const mx = (porcTurretX - 14) + Math.cos(porcAimAngle) * 46;
             const my = (HIGHWAY_Y - 40) + Math.sin(porcAimAngle) * 46;
             activeTurretShots.push({ x: mx, y: my, tx: target.x, ty: target.y - 10, target: target, speed: 750, color: '#fde047', isQuill: true, dmg: porcDmg });
           });
@@ -1404,12 +1414,12 @@
           if (a.garrison != null) {
             const d = Math.hypot(dx, dy);
             if (d < minDist) { minDist = d; target = e; }
-          } else if (dx * (gameState.faction==='porcupines' ? -1 : 1) > 0 && Math.abs(dx) < minDist && Math.abs(dy) < 38) {
+          } else if (dx > 0 && Math.abs(dx) < minDist && Math.abs(dy) < 38) {
             minDist = Math.abs(dx); target = e;
           }
         });
 
-        const distToBase = gameState.faction==='porcupines' ? a.x - RAT_CASTLE_X : PORC_CASTLE_X - a.x;
+        const distToBase = enemyCastleX - a.x; // Enemy base always on right
         const targetBase = (distToBase <= a.range + 8) && a.garrison == null;
 
         if (!target && !targetBase) {
@@ -1491,7 +1501,7 @@
         e.attackCooldown=Math.max(0,e.attackCooldown-dt);e.attackAnim=Math.max(0,e.attackAnim-dt*4);var target=null,min=e.range;
         allies.forEach(function(a){
           if(e.garrison!=null){var gd=Math.hypot(e.x-a.x,e.y-a.y);if(gd<min){min=gd;target=a;}}
-          else{var dx=e.x-a.x;var fwd=dx*(gameState.faction==='porcupines'?1:-1);if(fwd>=-3&&fwd<min&&Math.abs(a.y-e.y)<35){min=fwd;target=a;}}
+          else{var dx=e.x-a.x;var fwd=dx*-1;if(fwd>=-3&&fwd<min&&Math.abs(a.y-e.y)<35){min=fwd;target=a;}}
         });
         if(e.raidPoint!=null&&capturePoints[e.raidPoint]&&capturePoints[e.raidPoint].owner==='porcs')e.raidPoint=null; // point taken, resume push
         // Enemy direction: porcs (vs rats) move west, rats (vs porcs) move east
@@ -2032,7 +2042,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v64';
+  var PAGE_VERSION = 'v65';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
