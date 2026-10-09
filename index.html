@@ -176,7 +176,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v71</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v72</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -1435,10 +1435,9 @@
         const targetBase = (distToBase <= a.range + 8) && a.garrison == null;
 
         if (!target && !targetBase) {
-          // Porc defense mode: hold near citadel, don't march west
-          var isPorcDefense = gameState.faction==='porcupines';
-          // Direction: rats move east (+1), porcs move west (-1) [offensive] / hold [defensive]
-          var dir = isPorcDefense ? 0 : 1; // 0 = hold position for porc defense
+          // Player units march east toward enemy (both factions, player always on left)
+          // Direction: +1 = east (toward enemy on right)
+          var dir = 1;
           // Pause to capture: if on a cleared point not owned by our faction, hold position
           // (if defenders remain, keep advancing to engage them instead of standing in range)
           // Note: cp.owner uses 'porcs', gameState.faction uses 'porcupines'
@@ -2063,7 +2062,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v71';
+  var PAGE_VERSION = 'v72';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
