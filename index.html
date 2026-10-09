@@ -176,7 +176,7 @@
       <button class="menu-btn danger" id="btn-menu-new" type="button">RESET PROGRESS</button>
     </div>
     <p id="menu-save-hint">Your campaign is saved on this phone automatically — progress, gold and upgrades included.</p>
-    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v76</div>
+    <div id="game-version" style="position:absolute;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.45);font-family:monospace;">v77</div>
   </section>
 
   <section id="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -738,6 +738,7 @@
     var canvas=document.getElementById('canvas2d'),ctx=canvas.getContext('2d'),width=0,height=0,dpr=1;
     var MAP_WIDTH=2200,RIVER_X=1100,HIGHWAY_Y=260,ROAD_HALF_WIDTH=55,RAT_CASTLE_X=140,PORC_CASTLE_X=2060;
     var survivalTimer=0,survivalDuration=0; // Porc defense mode: survive until evacuation
+    var porcWaves=[], porcWaveIdx=0; // Wave system for porc campaign
     var SCURRY_MULT=1.15; // Rat racial bonus: passive +15% movement speed
     var THICK_HIDE_MULT=1.08; // Porcupine racial bonus: passive +8% max HP
     var FACTION_STORIES={
@@ -984,6 +985,14 @@
       if(isPorcPlayer){
         survivalDuration=150+lvl*15; // 165s stage 1 → 300s stage 10
         survivalTimer=survivalDuration;
+        // Build 5 waves: timing at 10%, 30%, 50%, 70%, 90% of duration
+        // Units: 5 + (wave-1)*3 + (stage-1)*1 per wave
+        porcWaves=[];porcWaveIdx=0;
+        for(var w=0;w<5;w++){
+          var waveTime=survivalDuration*(0.1+w*0.2);
+          var waveUnits=5+w*3+(lvl-1)*1;
+          porcWaves.push({time:waveTime, units:waveUnits, spawned:false});
+        }
       }
       panicAvailable=true;isGameOver=false;camX=isPorcPlayer?MAP_WIDTH-width:0;stageTime=0;bossSpawned=false;raidTimer=(lvl===1?55:45);enemyWaveTimer=(lvl === 1 ? 8.0 : 5.0);ratTurretCooldown=.7;porcTurretCooldown=1.1;ambientArtilleryTimer=2;
       capturePoints=[
@@ -1302,19 +1311,52 @@
           if(p.progress===0)p.progFaction=null;
         }
       });
-      enemyWaveTimer-=dt;if(enemyWaveTimer<=0){
-        enemyWaveTimer = Math.max(3.2, 8.2 - currentStage * 0.32);
-        if (currentStage === 10 && !bossSpawned && stageTime > 20) {
-          spawnEnemyUnit('warlord', true); bossSpawned = true; // one boss, then normal warlords
-        } else {
-          const r = Math.random();
-          var isPorcP2=gameState.faction==='porcupines';
-          const warlordCh = isPorcP2 ? (currentStage === 10 ? 0.08 : 0.18) : (currentStage >= 5 ? (currentStage === 10 ? 0.08 : 0.18) : 0);
-          const champCh = isPorcP2 ? (currentStage === 10 ? 0.25 : 0.38) : (currentStage >= 3 ? 0.38 : 0);
-          let pick = 'gladiator';
-          if (warlordCh > 0 && r > 1 - warlordCh) pick = 'warlord';
-          else if (champCh > 0 && r > 1 - warlordCh - champCh) pick = 'champion';
-          spawnEnemyUnit(pick);
+      var isPorcWave=gameState.faction==='porcupines';
+      if(isPorcWave){
+        // Wave system: spawn discrete waves at scheduled times
+        var elapsed=survivalDuration-survivalTimer;
+        if(porcWaveIdx<porcWaves.length && elapsed>=porcWaves[porcWaveIdx].time){
+          var wave=porcWaves[porcWaveIdx];
+          wave.spawned=true;
+          showBanner('🌊 WAVE '+(porcWaveIdx+1)+'/5 — '+wave.units+' rats incoming!');
+          for(var wi=0;wi<wave.units;wi++){
+            // Stagger spawns slightly
+            (function(waveNum, idx){
+              setTimeout(function(){
+                if(!isGameRunning)return;
+                const r = Math.random();
+                var isPorcP2=true;
+                const warlordCh = currentStage === 10 ? 0.08 : 0.18;
+                const champCh = currentStage === 10 ? 0.25 : 0.38;
+                let pick = 'gladiator';
+                if (warlordCh > 0 && r > 1 - warlordCh) pick = 'warlord';
+                else if (champCh > 0 && r > 1 - warlordCh - champCh) pick = 'champion';
+                // Boss in final wave on stage 10
+                if(currentStage===10 && waveNum===4 && idx===0 && !bossSpawned){
+                  spawnEnemyUnit('warlord', true); bossSpawned=true;
+                } else {
+                  spawnEnemyUnit(pick);
+                }
+              }, idx*400); // 400ms stagger
+            })(porcWaveIdx, wi);
+          }
+          porcWaveIdx++;
+        }
+      } else {
+        // Rat campaign: continuous spawning (original)
+        enemyWaveTimer-=dt;if(enemyWaveTimer<=0){
+          enemyWaveTimer = Math.max(3.2, 8.2 - currentStage * 0.32);
+          if (currentStage === 10 && !bossSpawned && stageTime > 20) {
+            spawnEnemyUnit('warlord', true); bossSpawned = true;
+          } else {
+            const r = Math.random();
+            const warlordCh = currentStage >= 5 ? (currentStage === 10 ? 0.08 : 0.18) : 0;
+            const champCh = currentStage >= 3 ? 0.38 : 0;
+            let pick = 'gladiator';
+            if (warlordCh > 0 && r > 1 - warlordCh) pick = 'warlord';
+            else if (champCh > 0 && r > 1 - warlordCh - champCh) pick = 'champion';
+            spawnEnemyUnit(pick);
+          }
         }
       }
 
@@ -2070,7 +2112,7 @@
 // every launch and forces the service worker to update if one exists.
 // This prevents the "stuck on old version" problem permanently.
 (function(){
-  var PAGE_VERSION = 'v76';
+  var PAGE_VERSION = 'v77';
   function forceUpdateCheck(){
     // Fetch sw.js with a cache-busting URL so the service worker can't serve
     // a stale copy — the unique query string misses the SW cache and hits network.
